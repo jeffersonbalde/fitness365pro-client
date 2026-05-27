@@ -10,11 +10,6 @@ const looksLikeHtmlResponse = (raw) => {
   return trimmed.startsWith('<!doctype html') || trimmed.startsWith('<html')
 }
 
-const isLikelyApiPayload = (data) => {
-  if (!data || typeof data !== 'object' || Array.isArray(data)) return false
-  return 'success' in data || 'message' in data || 'data' in data
-}
-
 const getAccessToken = () => sessionStorage.getItem(ACCESS_TOKEN_KEY)
 const setAccessToken = (token) => {
   if (token) sessionStorage.setItem(ACCESS_TOKEN_KEY, token)
@@ -120,12 +115,13 @@ export const apiRequest = async (endpoint, options = {}) => {
         })()
       : null
 
-    if (looksLikeHtmlResponse(raw) || (response.ok && data && !isLikelyApiPayload(data))) {
+    if (looksLikeHtmlResponse(raw)) {
       throw {
         response: {
           data: {
             message:
-              'API URL is misconfigured. Set VITE_LARAVEL_API to your Laravel API URL (for example https://your-api.ondigitalocean.app/fitness365pro-server/api), then redeploy the client.',
+              `The server returned a web page instead of JSON from ${API_BASE_URL}${endpoint}. ` +
+              'Set VITE_LARAVEL_API to your Laravel API URL (build-time env var), then Force Rebuild and Deploy the client.',
             errors: {},
           },
           status: 502,

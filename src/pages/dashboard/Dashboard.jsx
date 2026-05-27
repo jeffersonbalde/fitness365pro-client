@@ -98,25 +98,39 @@ const Dashboard = () => {
           sort: 'chronological',
           scope: 'all',
         })
-        const [workoutsFeedRes, cmsFeedRes] = await Promise.all([
+        const [workoutsResult, cmsResult] = await Promise.allSettled([
           apiRequest(`/v1/workouts/feed?${feedParams.toString()}`, { method: 'GET' }),
           apiRequest('/v1/cms/feed', { method: 'GET' }),
         ])
 
-        const workoutItems = workoutsFeedRes.data?.success
+        const workoutsFeedRes = workoutsResult.status === 'fulfilled' ? workoutsResult.value : null
+        const cmsFeedRes = cmsResult.status === 'fulfilled' ? cmsResult.value : null
+
+        const workoutItems = workoutsFeedRes?.data?.success
           ? (workoutsFeedRes.data?.data?.workouts || [])
           : []
-        const cmsItems = cmsFeedRes.data?.success
+        const cmsItems = cmsFeedRes?.data?.success
           ? (cmsFeedRes.data?.data?.posts || []).map(mapCmsPostToFeedItem)
           : []
 
-        if (!workoutsFeedRes.data?.success && !cmsFeedRes.data?.success) {
-          setFeedError(workoutsFeedRes.data?.message || cmsFeedRes.data?.message || 'Could not load feed.')
+        const feedErrors = []
+        if (workoutsResult.status === 'rejected') {
+          feedErrors.push(workoutsResult.reason?.response?.data?.message || 'Workout feed failed.')
+        } else if (!workoutsFeedRes?.data?.success) {
+          feedErrors.push(workoutsFeedRes?.data?.message || 'Workout feed failed.')
+        }
+        if (cmsResult.status === 'rejected') {
+          feedErrors.push(cmsResult.reason?.response?.data?.message || 'Admin posts failed.')
+        } else if (!cmsFeedRes?.data?.success) {
+          feedErrors.push(cmsFeedRes?.data?.message || 'Admin posts failed.')
         }
 
-        setFeedItems(
-          [...workoutItems, ...cmsItems].sort((a, b) => feedItemSortTime(b) - feedItemSortTime(a))
-        )
+        const mergedItems = [...workoutItems, ...cmsItems].sort((a, b) => feedItemSortTime(b) - feedItemSortTime(a))
+        setFeedItems(mergedItems)
+
+        if (mergedItems.length === 0 && feedErrors.length > 0) {
+          setFeedError(feedErrors[0])
+        }
       } catch (error) {
         console.error('Failed to fetch feed:', error)
         setFeedError(error?.response?.data?.message || 'Could not load feed. Please refresh.')
