@@ -1,0 +1,227 @@
+.mobile-bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* Above in-page overlays (e.g. dropdowns ~1040); sheet/backdrop are portaled higher */
+  z-index: 1050;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: color-mix(in srgb, var(--app-surface) 94%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--app-border);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme='dark'] .mobile-bottom-nav {
+  background: color-mix(in srgb, var(--app-surface) 92%, #000 8%);
+  box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.45);
+}
+
+.mobile-bottom-nav__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10080;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.5);
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  opacity: 0;
+  transition: opacity 0.28s ease-out;
+}
+
+.mobile-bottom-nav__backdrop.is-visible {
+  opacity: 1;
+}
+
+.mobile-bottom-nav__sheet {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + 56px + env(safe-area-inset-bottom, 0px));
+  z-index: 10081;
+  padding: 14px 14px 10px;
+  border-radius: 16px;
+  background: var(--app-surface, #fff);
+  border: 1px solid var(--app-border, #e5e7eb);
+  box-shadow: var(--app-elevated-shadow, 0 16px 48px rgba(0, 0, 0, 0.18));
+  opacity: 0;
+  transform: translate3d(0, 22px, 0) scale(0.97);
+  transform-origin: 50% 100%;
+  transition:
+    opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mobile-bottom-nav__sheet.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-bottom-nav__backdrop,
+  .mobile-bottom-nav__sheet {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
+}
+
+[data-theme='dark'] .mobile-bottom-nav__sheet {
+  background: var(--app-surface, #12141c);
+  border-color: var(--app-border, #2a3042);
+}
+
+.mobile-bottom-nav__sheet-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--app-text-muted, #64748b);
+  margin: 0 4px 10px;
+}
+
+.mobile-bottom-nav__sheet-link {
+  display: block;
+  text-decoration: none;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--app-border, #e5e7eb);
+  background: var(--app-surface-2, #f8fafc);
+  margin-bottom: 8px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.mobile-bottom-nav__sheet-link:active {
+  opacity: 0.92;
+}
+
+[data-theme='dark'] .mobile-bottom-nav__sheet-link {
+  background: color-mix(in srgb, var(--app-surface, #12141c) 88%, #fff 12%);
+  border-color: var(--app-border, #2a3042);
+}
+
+.mobile-bottom-nav__sheet-link-main {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--app-text, #0f172a);
+}
+
+.mobile-bottom-nav__sheet-link-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.78rem;
+  color: var(--app-text-muted, #64748b);
+  line-height: 1.35;
+}
+
+.mobile-bottom-nav__sheet-cancel {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--app-text-muted, #64748b);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-bottom-nav__inner {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+  max-width: 100%;
+  margin: 0 auto;
+  min-height: 56px;
+  /* Match top bar / dashboard (--app-edge-gutter from index.css) */
+  padding-top: 8px;
+  padding-bottom: 10px;
+  padding-left: calc(var(--app-edge-gutter, 1.5rem) + env(safe-area-inset-left, 0px));
+  padding-right: calc(var(--app-edge-gutter, 1.5rem) + env(safe-area-inset-right, 0px));
+  box-sizing: border-box;
+  column-gap: 4px;
+}
+
+.mobile-bottom-nav__tab {
+  width: 100%;
+  margin: 0;
+  line-height: 1.1;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 2px 4px;
+  text-decoration: none;
+  color: var(--app-text-muted);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border-radius: 10px;
+  transition: color 0.15s ease, background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Log uses same muted icon as other tabs unless workout route is active or sheet is open */
+.mobile-bottom-nav__tab--action .mobile-bottom-nav__icon--plus {
+  color: inherit;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), color 0.2s ease;
+}
+
+.mobile-bottom-nav__tab--action.is-active .mobile-bottom-nav__icon--plus,
+.mobile-bottom-nav__tab--action.is-open .mobile-bottom-nav__icon--plus {
+  color: var(--brand-primary, #1d79bc);
+}
+
+.mobile-bottom-nav__tab--action.is-open .mobile-bottom-nav__icon--plus {
+  transform: scale(1.05);
+}
+
+.mobile-bottom-nav__tab:active {
+  transform: scale(0.96);
+}
+
+.mobile-bottom-nav__tab.is-active {
+  color: var(--brand-primary, #1d79bc);
+  background: color-mix(in srgb, var(--brand-primary, #1d79bc) 12%, transparent);
+}
+
+.mobile-bottom-nav__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  line-height: 0;
+}
+
+.mobile-bottom-nav__icon svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.mobile-bottom-nav__label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

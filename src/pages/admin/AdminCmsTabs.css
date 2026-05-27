@@ -1,0 +1,35 @@
+.admin-cms-tabs__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.admin-cms-tabs .card-body {
+  background: linear-gradient(180deg, #fafbfd 0%, #ffffff 100%);
+}
+
+.admin-cms-tabs__link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.admin-cms-tabs__link:hover {
+  color: #1d79bc;
+  background: rgba(29, 121, 188, 0.08);
+}
+
+.admin-cms-tabs__link.is-active {
+  color: #0f172a;
+  background: rgba(29, 121, 188, 0.14);
+  border-color: rgba(29, 121, 188, 0.35);
+}

@@ -1,0 +1,48 @@
+.app-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2.5rem 1.25rem;
+  text-align: center;
+}
+
+.app-loading-state--compact {
+  padding: 1.5rem 0.85rem;
+  gap: 0.75rem;
+}
+
+.app-loading-state__spinner {
+  display: block;
+  box-sizing: border-box;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 3px solid color-mix(in srgb, var(--brand-primary) 18%, var(--app-border));
+  border-top-color: var(--brand-primary);
+  animation: app-loading-state-spin 0.7s linear infinite;
+}
+
+@keyframes app-loading-state-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.app-loading-state__hint {
+  display: block;
+  margin: 0;
+  max-width: 18rem;
+  font-size: 0.895rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--app-text-muted);
+  letter-spacing: 0.01em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-loading-state__spinner {
+    animation-duration: 1.35s;
+  }
+}

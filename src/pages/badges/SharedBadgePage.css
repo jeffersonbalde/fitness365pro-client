@@ -1,0 +1,113 @@
+.shared-badge-page {
+  min-height: calc(100dvh - 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px 40px;
+}
+
+.shared-badge-card {
+  width: min(100%, 440px);
+  padding: 28px 22px 24px;
+  border-radius: 18px;
+  border: 1px solid var(--app-border, #e5e7eb);
+  background: var(--app-surface, #fff);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  text-align: center;
+}
+
+.shared-badge-card--empty h1 {
+  margin: 0 0 8px;
+  font-size: 1.25rem;
+}
+
+.shared-badge-card--empty p {
+  margin: 0 0 16px;
+  color: var(--app-text-muted, #64748b);
+}
+
+.shared-badge-card-badge-wrap {
+  width: 140px;
+  height: 140px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  padding: 5px;
+  background: linear-gradient(145deg, #fbbf24, #f97316 45%, #ea580c);
+}
+
+.shared-badge-card-img,
+.shared-badge-card-img-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #fff;
+  display: block;
+  background: #f8fafc;
+}
+
+.shared-badge-card-verified {
+  display: inline-flex;
+  margin-bottom: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #16a34a 12%, transparent);
+  color: #15803d;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.shared-badge-card-title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.shared-badge-card-event {
+  margin: 6px 0 0;
+  color: var(--app-text-muted, #64748b);
+  font-weight: 600;
+}
+
+.shared-badge-card-owner {
+  margin: 12px 0 18px;
+  font-size: 0.92rem;
+  color: var(--app-text-muted, #64748b);
+}
+
+.shared-badge-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shared-badge-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--app-border, #e5e7eb);
+  background: var(--app-surface, #fff);
+  color: var(--app-text, #111827);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.shared-badge-link-btn.is-primary {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border-color: transparent;
+  color: #fff;
+}
+
+[data-theme='dark'] .shared-badge-card {
+  background: #151821;
+  border-color: #2b3140;
+}
+
+[data-theme='dark'] .shared-badge-link-btn {
+  background: #151821;
+  border-color: #2b3140;
+  color: #e5e7eb;
+}

@@ -1,0 +1,85 @@
+/*
+ * Joined Events — loads after Profile.css; uses .profile-page scope + !important
+ * so Bootstrap / legacy sidebar rules never reintroduce horizontal scrolling.
+ */
+.profile-page .profile-joined-challenge-row--one-line,
+.profile-page .profile-joined-challenge-card .profile-joined-challenge-row--one-line {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: start !important;
+  gap: 10px 12px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.profile-page .profile-joined-challenge-row--one-line.profile-joined-challenge-row--no-ring {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.profile-page .profile-joined-challenge-left {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.profile-page .profile-joined-challenge-inline-cluster {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  align-self: stretch !important;
+  flex-wrap: nowrap !important;
+  gap: 5px !important;
+  overflow: visible !important;
+}
+
+.profile-page .profile-joined-challenge-inline-meta {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 4px 8px !important;
+  row-gap: 4px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.profile-page .profile-joined-challenge-inline-title {
+  flex: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+  line-clamp: 2 !important;
+  overflow: hidden !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+}
+
+.profile-page .profile-joined-challenge-ring-shell {
+  flex-shrink: 0 !important;
+  align-self: center !important;
+}
+
+.profile-joined-challenge-card--interactive {
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.22s ease,
+    transform 0.18s ease;
+}
+
+.profile-joined-challenge-card--interactive:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
+}
+
+[data-theme='dark'] .profile-joined-challenge-card--interactive:hover {
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.35);
+}
+

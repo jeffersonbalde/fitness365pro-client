@@ -1,0 +1,686 @@
+/* Uses global tokens from index.css: --app-*, --brand-primary */
+
+.admin-events-panel-has-error {
+  border-color: rgba(185, 28, 28, 0.65) !important;
+  background: rgba(254, 242, 242, 0.55) !important;
+}
+
+[data-theme='dark'] .admin-events-panel-has-error {
+  border-color: rgba(248, 113, 113, 0.45) !important;
+  background: rgba(127, 29, 29, 0.12) !important;
+}
+
+.admin-events-chip-group-invalid {
+  padding: 0.4rem;
+  border-radius: 8px;
+  border: 1px solid rgba(185, 28, 28, 0.55);
+  background: rgba(185, 28, 28, 0.04);
+}
+
+.admin-events-upload-invalid .admin-events-image-preview.border-danger {
+  border-color: #b91c1c !important;
+  box-shadow: inset 0 0 0 1px rgba(185, 28, 28, 0.25);
+}
+
+.admin-events-modal .form-control.is-invalid,
+.admin-events-modal .form-select.is-invalid {
+  border-color: rgba(185, 28, 28, 0.85) !important;
+  background-color: rgba(254, 242, 242, 0.35) !important;
+  box-shadow: inset 3px 0 0 #b91c1c;
+}
+
+[data-theme='dark'] .admin-events-modal .form-control.is-invalid,
+[data-theme='dark'] .admin-events-modal .form-select.is-invalid {
+  background-color: rgba(127, 29, 29, 0.15) !important;
+  border-color: #f87171 !important;
+}
+
+.admin-events-field-error {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #991b1b;
+  letter-spacing: 0.01em;
+}
+
+[data-theme='dark'] .admin-events-field-error {
+  color: #fca5a5;
+}
+
+.admin-events-subfield-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--app-text);
+  line-height: 1.35;
+}
+
+.admin-events-nested-box {
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface);
+}
+
+.admin-events-page-hero .btn {
+  white-space: nowrap;
+}
+
+.admin-events-table th,
+.admin-events-table td {
+  vertical-align: middle;
+}
+
+.admin-event-status {
+  text-transform: capitalize;
+}
+
+.admin-event-status.status-draft {
+  color: var(--app-text-muted);
+  background: var(--app-surface-2);
+  border-color: var(--app-border) !important;
+}
+
+.admin-event-status.status-published {
+  color: #14532d;
+  background: #dcfce7;
+  border-color: #bbf7d0 !important;
+}
+
+[data-theme='dark'] .admin-event-status.status-published {
+  color: #bbf7d0;
+  background: rgba(22, 101, 52, 0.35);
+  border-color: rgba(74, 222, 128, 0.35) !important;
+}
+
+.admin-events-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  padding: 1rem;
+  animation: admin-events-overlay-in 0.22s ease;
+}
+
+[data-theme='dark'] .admin-events-modal-overlay {
+  background: rgba(0, 0, 0, 0.62);
+}
+
+.admin-events-modal {
+  width: min(920px, 100%);
+  max-height: min(92vh, 900px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--app-surface);
+  border-radius: 12px;
+  box-shadow: var(--app-elevated-shadow);
+  border: 1px solid var(--app-border);
+  padding: 0;
+  color: var(--app-text);
+  animation: admin-events-modal-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.admin-events-modal-form-stack {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.admin-events-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 1rem 1.35rem 1.25rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-events-modal-footer {
+  flex-shrink: 0;
+  padding: 0.85rem 1.35rem 1rem;
+  border-top: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.admin-events-modal-footer .admin-events-modal-actions {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: none;
+}
+
+.admin-events-modal-overlay.is-closing {
+  animation: admin-events-overlay-out 0.22s ease forwards;
+}
+
+.admin-events-modal.is-closing {
+  animation: admin-events-modal-out 0.22s ease forwards;
+}
+
+.admin-events-modal-sm {
+  width: min(420px, 100%);
+  /* Compact dialog: single scrollable panel (no sticky regions) */
+  display: block;
+  flex-direction: unset;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 1.25rem 1.35rem 1.15rem;
+}
+
+.admin-events-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 1rem 1.35rem;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.admin-events-modal-header h3 {
+  color: var(--app-text);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+
+.admin-events-modal .btn-close {
+  filter: none;
+  opacity: 0.55;
+}
+
+.admin-events-modal .btn-close:hover {
+  opacity: 1;
+}
+
+.admin-events-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.admin-events-form-section {
+  padding-top: 1.15rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--app-border);
+}
+
+.admin-events-form-section:first-child {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: none;
+}
+
+.admin-events-form-section-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--app-text-muted);
+  margin: 0 0 0.85rem;
+}
+
+.admin-events-form-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.35rem;
+  align-items: start;
+}
+
+.admin-events-form-section-grid .admin-events-span-2 {
+  grid-column: span 2;
+}
+
+.admin-events-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.admin-events-form label > span:first-child {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--app-text);
+  line-height: 1.3;
+}
+
+.admin-events-form .text-muted {
+  color: var(--app-text-muted) !important;
+}
+
+.admin-events-modal .form-control,
+.admin-events-modal .form-select {
+  background: var(--app-surface) !important;
+  color: var(--app-text) !important;
+  border: 1px solid var(--app-border) !important;
+  border-radius: 10px !important;
+  min-height: 42px;
+  padding: 0.5rem 0.75rem;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease !important;
+}
+
+.admin-events-modal textarea.form-control {
+  min-height: 112px;
+  resize: vertical;
+}
+
+.admin-events-modal .form-control::placeholder {
+  color: var(--app-text-muted) !important;
+  opacity: 0.85;
+}
+
+.admin-events-modal .form-control:focus,
+.admin-events-modal .form-select:focus {
+  border-color: var(--brand-primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 22%, transparent) !important;
+  outline: none !important;
+}
+
+.admin-events-form-section-grid > .admin-events-form-full {
+  grid-column: span 2;
+}
+
+.admin-events-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  padding-top: 1.25rem;
+  margin-top: 1.25rem;
+  border-top: 1px solid var(--app-border);
+}
+
+.admin-events-modal-actions .btn {
+  min-width: 7.5rem;
+  padding: 0.55rem 1.15rem;
+}
+
+.admin-events-modal .btn.btn-sm {
+  min-width: 0;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+}
+
+.admin-events-modal label.btn {
+  cursor: pointer;
+  margin: 0;
+  width: fit-content;
+}
+
+/* Destructive actions: calm gov-style outline */
+.admin-events-btn-danger-outline {
+  background: var(--app-surface) !important;
+  color: #991b1b !important;
+  border: 1px solid rgba(185, 28, 28, 0.45) !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+}
+
+.admin-events-btn-danger-outline:hover:not(:disabled) {
+  background: rgba(254, 242, 242, 0.85) !important;
+  border-color: rgba(185, 28, 28, 0.7) !important;
+  color: #7f1d1d !important;
+}
+
+[data-theme='dark'] .admin-events-btn-danger-outline {
+  color: #fecaca !important;
+  border-color: rgba(248, 113, 113, 0.45) !important;
+}
+
+[data-theme='dark'] .admin-events-btn-danger-outline:hover:not(:disabled) {
+  background: rgba(127, 29, 29, 0.25) !important;
+}
+
+.admin-events-btn-danger-solid {
+  background: #991b1b !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+}
+
+.admin-events-btn-danger-solid:hover:not(:disabled) {
+  background: #7f1d1d !important;
+  color: #fff !important;
+}
+
+.admin-events-btn-danger-solid:disabled {
+  opacity: 0.55;
+}
+
+.admin-events-upload-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.admin-events-image-preview {
+  width: 100%;
+  height: 132px;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface-2);
+  overflow: hidden;
+}
+
+.admin-events-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.admin-events-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--app-text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.admin-events-upload-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.admin-events-upload-actions .btn {
+  width: fit-content;
+}
+
+@keyframes admin-events-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes admin-events-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes admin-events-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes admin-events-modal-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .admin-events-form-section-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-events-form-section-grid > .admin-events-form-full {
+    grid-column: span 1;
+  }
+
+  .admin-events-form-section-grid .admin-events-span-2 {
+    grid-column: span 1;
+  }
+
+  .admin-events-upload-wrap {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-events-running-panel {
+    width: 100%;
+  }
+
+  .admin-events-running-title {
+    grid-column: unset;
+  }
+
+  .admin-events-running-checkbox {
+    grid-column: unset;
+  }
+
+  .admin-events-modal-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .admin-events-modal-actions .btn {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+.admin-events-badge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.admin-events-badge-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface-2);
+}
+
+.admin-events-badge-thumb {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.admin-events-badge-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.admin-events-badge-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  align-items: flex-start;
+}
+
+.admin-events-badge-fields .btn {
+  min-width: 0;
+}
+
+.admin-events-running-panel {
+  width: 100%;
+  max-width: 100%;
+  padding: 1rem 1rem;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-events-running-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--app-text);
+  margin: 0 0 0.15rem;
+  letter-spacing: -0.01em;
+}
+
+.admin-events-running-panel > label > span:first-child,
+.admin-events-running-panel .admin-events-form-full > span:first-child {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--app-text);
+}
+
+.admin-events-running-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--app-text);
+}
+
+.admin-events-running-checkbox input {
+  width: 1rem;
+  height: 1rem;
+}
+
+.admin-events-shirt-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.admin-events-shirt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  background: var(--app-surface);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  margin: 0;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.admin-events-shirt-chip:has(input:checked) {
+  border-color: var(--brand-primary);
+  background: color-mix(in srgb, var(--brand-primary) 9%, var(--app-surface));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-primary) 35%, transparent);
+}
+
+.admin-events-shirt-chip:hover {
+  border-color: color-mix(in srgb, var(--brand-primary) 45%, var(--app-border));
+}
+
+.admin-events-shirt-chip input {
+  margin: 0;
+  accent-color: var(--brand-primary);
+}
+
+/* Event modals: always light UI (admin CMS), independent of app dark theme */
+.admin-events-modal--force-light {
+  --app-bg: #fafafa;
+  --app-surface: #ffffff;
+  --app-surface-2: #f8fafc;
+  --app-text: #111827;
+  --app-text-muted: #6b7280;
+  --app-border: #e5e7eb;
+  --app-elevated-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+  --brand-primary: #1d79bc;
+  --brand-primary-hover: #2690d8;
+  --brand-primary-active: #185a94;
+  /* Bootstrap text utilities inside modal */
+  --bs-body-color: #212529;
+  --bs-secondary-color: #6c757d;
+  --bs-tertiary-color: #6c757d;
+  --bs-border-color: #dee2e6;
+  color: var(--app-text);
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+
+.admin-events-modal--force-light .admin-events-modal-header h3,
+.admin-events-modal--force-light .h6 {
+  color: var(--app-text);
+}
+
+.admin-events-modal-overlay--force-light {
+  background: rgba(15, 23, 42, 0.45) !important;
+}
+
+[data-theme='dark'] .admin-events-modal-overlay.admin-events-modal-overlay--force-light {
+  background: rgba(15, 23, 42, 0.45) !important;
+}
+
+[data-theme='dark'] .admin-events-modal--force-light .admin-events-field-error {
+  color: #991b1b;
+}
+
+[data-theme='dark'] .admin-events-modal--force-light .form-control.is-invalid,
+[data-theme='dark'] .admin-events-modal--force-light .form-select.is-invalid {
+  background-color: rgba(254, 242, 242, 0.35) !important;
+  border-color: rgba(185, 28, 28, 0.85) !important;
+  box-shadow: inset 3px 0 0 #b91c1c;
+}
+
+[data-theme='dark'] .admin-events-modal--force-light .admin-events-panel-has-error {
+  border-color: rgba(185, 28, 28, 0.65) !important;
+  background: rgba(254, 242, 242, 0.55) !important;
+}
+
+[data-theme='dark'] .admin-events-modal--force-light .admin-events-btn-danger-outline {
+  background: var(--app-surface) !important;
+  color: #991b1b !important;
+  border-color: rgba(185, 28, 28, 0.45) !important;
+}
+
+[data-theme='dark'] .admin-events-modal--force-light .admin-events-btn-danger-outline:hover:not(:disabled) {
+  background: rgba(254, 242, 242, 0.85) !important;
+  border-color: rgba(185, 28, 28, 0.7) !important;
+  color: #7f1d1d !important;
+}
+
+[data-theme='dark'] .admin-events-modal--force-light .btn-close {
+  filter: none;
+  opacity: 0.55;
+}
+
+/* Buttons: use light-theme outline interaction even when app is dark */
+[data-theme='dark'] .admin-events-modal--force-light .btn-outline-brand:hover:not(:disabled) {
+  background: var(--app-surface-2) !important;
+  border-color: var(--app-text-muted) !important;
+  color: var(--app-text) !important;
+}
+
+[data-theme='dark'] .admin-events-modal--force-light .btn-outline-brand:active:not(:disabled) {
+  opacity: 0.92;
+}
+

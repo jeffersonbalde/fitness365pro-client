@@ -1,0 +1,75 @@
+.notifications-page {
+  background: var(--app-bg);
+  color: var(--app-text);
+  min-height: calc(100vh - 64px);
+}
+
+.notifications-page__card {
+  max-width: 720px;
+  margin: 0 auto;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 16px;
+  box-shadow: var(--app-elevated-shadow);
+  overflow: hidden;
+}
+
+.notifications-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.notifications-page__title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.notifications-page__subtitle {
+  margin: 0.35rem 0 0;
+  color: var(--app-text-muted);
+  font-size: 0.9rem;
+}
+
+.notifications-page__mark-all {
+  flex-shrink: 0;
+}
+
+.notifications-page__body {
+  padding: 0.5rem 0;
+}
+
+.notifications-page__list .notifications-item {
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+}
+
+.notifications-page__empty {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: var(--app-text-muted);
+}
+
+.notifications-page__empty-title {
+  color: var(--app-text);
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin-bottom: 0.35rem;
+}
+
+@media (max-width: 767.98px) {
+  .notifications-page__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .notifications-page__mark-all {
+    width: 100%;
+  }
+}

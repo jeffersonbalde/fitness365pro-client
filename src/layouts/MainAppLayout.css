@@ -1,0 +1,10 @@
+/* Space for fixed mobile tab bar; desktop unchanged */
+[data-theme='dark'] .main-app-shell__main {
+  background-color: var(--app-bg);
+}
+
+@media (max-width: 767.98px) {
+  .main-app-shell__main {
+    padding-bottom: calc(12px + 56px + env(safe-area-inset-bottom, 0px));
+  }
+}
