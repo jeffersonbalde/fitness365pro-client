@@ -94,7 +94,7 @@ const Dashboard = () => {
       setFeedError('')
       try {
         const feedParams = new URLSearchParams({
-          limit: '50',
+          limit: '25',
           sort: 'chronological',
           scope: 'all',
         })

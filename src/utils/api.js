@@ -116,15 +116,17 @@ export const apiRequest = async (endpoint, options = {}) => {
       : null
 
     if (looksLikeHtmlResponse(raw)) {
+      const gatewayStatuses = [502, 503, 504]
+      const timedOut = gatewayStatuses.includes(response.status)
       throw {
         response: {
           data: {
-            message:
-              `The server returned a web page instead of JSON from ${API_BASE_URL}${endpoint}. ` +
-              'Set VITE_LARAVEL_API to your Laravel API URL (build-time env var), then Force Rebuild and Deploy the client.',
+            message: timedOut
+              ? 'The server took too long to respond (gateway timeout). Please try again. If this keeps happening, redeploy the API after running migrations — the feed query was optimized to fix this.'
+              : `The server returned a web page instead of JSON from ${API_BASE_URL}${endpoint}. Check that your API component is running and the route exists.`,
             errors: {},
           },
-          status: 502,
+          status: response.status || 502,
         },
       }
     }
