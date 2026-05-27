@@ -41,6 +41,7 @@ const Dashboard = () => {
   const navigate = useNavigate()
   const [feedItems, setFeedItems] = useState([])
   const [feedLoading, setFeedLoading] = useState(true)
+  const [feedError, setFeedError] = useState('')
   const [postLikeBusyByWorkout, setPostLikeBusyByWorkout] = useState({})
   const [activeCommentsWorkoutId, setActiveCommentsWorkoutId] = useState(null)
   const [commentsLoadingByWorkout, setCommentsLoadingByWorkout] = useState({})
@@ -54,7 +55,6 @@ const Dashboard = () => {
   const [likesUsers, setLikesUsers] = useState([])
   const [postImageViewerUrl, setPostImageViewerUrl] = useState('')
   const [togglingFollow, setTogglingFollow] = useState(false)
-  const [loading, setLoading] = useState(true)
   const [challengeJournalModal, setChallengeJournalModal] = useState(null)
 
   const feedItemSortTime = (entry) => {
@@ -90,6 +90,8 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      setFeedLoading(true)
+      setFeedError('')
       try {
         const feedParams = new URLSearchParams({
           limit: '50',
@@ -108,19 +110,26 @@ const Dashboard = () => {
           ? (cmsFeedRes.data?.data?.posts || []).map(mapCmsPostToFeedItem)
           : []
 
+        if (!workoutsFeedRes.data?.success && !cmsFeedRes.data?.success) {
+          setFeedError(workoutsFeedRes.data?.message || cmsFeedRes.data?.message || 'Could not load feed.')
+        }
+
         setFeedItems(
           [...workoutItems, ...cmsItems].sort((a, b) => feedItemSortTime(b) - feedItemSortTime(a))
         )
       } catch (error) {
         console.error('Failed to fetch feed:', error)
+        setFeedError(error?.response?.data?.message || 'Could not load feed. Please refresh.')
+        setFeedItems([])
       } finally {
         setFeedLoading(false)
-        setLoading(false)
       }
     }
 
     if (client) {
       fetchData()
+    } else {
+      setFeedLoading(false)
     }
   }, [client])
 
@@ -276,20 +285,17 @@ const Dashboard = () => {
     setPostImageViewerUrl('')
   }
 
-  if (loading) {
-    return (
-      <div className={`dashboard-page dashboard-page--loading ${isDark ? 'is-dark' : ''}`}>
-        <AppLoadingState hint="Loading feed…" />
-      </div>
-    )
-  }
-
   return (
     <div className={`dashboard-page ${isDark ? 'is-dark' : ''}`}>
       <main className="dashboard-social-main">
         <div className="dashboard-social-feed">
           {feedLoading ? (
             <AppLoadingState compact hint="Loading feed…" className="dashboard-social-feed-loading" />
+          ) : feedError ? (
+            <div className="dashboard-feed-empty">
+              <p>Could not load feed.</p>
+              <p className="dashboard-feed-empty-sub">{feedError}</p>
+            </div>
           ) : feedItems.length === 0 ? (
             <div className="dashboard-feed-empty">
               <p>No posts yet.</p>

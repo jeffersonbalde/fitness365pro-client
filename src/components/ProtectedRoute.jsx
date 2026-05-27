@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { apiRequest } from '../utils/api'
 
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, loading, onboardingCompleted } = useAuth()
   const location = useLocation()
   const [requiresOnboarding, setRequiresOnboarding] = useState(false)
 
@@ -27,19 +27,24 @@ const ProtectedRoute = ({ children }) => {
         return
       }
 
-      try {
-        const statusRes = await apiRequest('/v1/onboarding/status', { method: 'GET' })
-        const onboardingCompleted = Boolean(statusRes?.data?.data?.onboarding_completed)
+      if (onboardingCompleted !== null) {
         if (mounted) {
           setRequiresOnboarding(!onboardingCompleted)
+        }
+        return
+      }
+
+      try {
+        const statusRes = await apiRequest('/v1/onboarding/status', { method: 'GET' })
+        const completed = Boolean(statusRes?.data?.data?.onboarding_completed)
+        if (mounted) {
+          setRequiresOnboarding(!completed)
         }
       } catch {
         // Fail open to avoid trapping authenticated users due to transient API issues.
         if (mounted) {
           setRequiresOnboarding(false)
         }
-      } finally {
-        // No-op: do not block rendering while checking onboarding status.
       }
     }
 
@@ -48,7 +53,7 @@ const ProtectedRoute = ({ children }) => {
     return () => {
       mounted = false
     }
-  }, [isAuthenticated, location.pathname])
+  }, [isAuthenticated, location.pathname, onboardingCompleted])
 
   if (loading) {
     return (

@@ -5,6 +5,16 @@ const API_BASE_URL = getApiBaseUrl()
 const ACCESS_TOKEN_KEY = 'auth_token' // short-lived (store in sessionStorage)
 const REFRESH_TOKEN_KEY = 'refresh_token' // long-lived (dev: localStorage)
 
+const looksLikeHtmlResponse = (raw) => {
+  const trimmed = (raw || '').trim().toLowerCase()
+  return trimmed.startsWith('<!doctype html') || trimmed.startsWith('<html')
+}
+
+const isLikelyApiPayload = (data) => {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return false
+  return 'success' in data || 'message' in data || 'data' in data
+}
+
 const getAccessToken = () => sessionStorage.getItem(ACCESS_TOKEN_KEY)
 const setAccessToken = (token) => {
   if (token) sessionStorage.setItem(ACCESS_TOKEN_KEY, token)
@@ -109,6 +119,19 @@ export const apiRequest = async (endpoint, options = {}) => {
           }
         })()
       : null
+
+    if (looksLikeHtmlResponse(raw) || (response.ok && data && !isLikelyApiPayload(data))) {
+      throw {
+        response: {
+          data: {
+            message:
+              'API URL is misconfigured. Set VITE_LARAVEL_API to your Laravel API URL (for example https://your-api.ondigitalocean.app/fitness365pro-server/api), then redeploy the client.',
+            errors: {},
+          },
+          status: 502,
+        },
+      }
+    }
 
     // Handle 401 Unauthorized
     if (response.status === 401) {

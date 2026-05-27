@@ -18,6 +18,7 @@ export const AuthProvider = ({ children }) => {
   const [client, setClient] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [onboardingCompleted, setOnboardingCompleted] = useState(null)
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -28,14 +29,21 @@ export const AuthProvider = ({ children }) => {
       const statusRes = await apiRequest('/v1/onboarding/status', { method: 'GET' })
       if (statusRes?.data?.success) {
         const status = statusRes.data.data || {}
+        setOnboardingCompleted(Boolean(status.onboarding_completed))
         return status.onboarding_completed ? '/dashboard' : '/onboarding'
       }
     } catch {
       // Fall back to client payload hints if status endpoint is temporarily unavailable
       const payloadStep = Number(fallbackClient?.onboarding_step || 0)
       const payloadCompleted = Boolean(fallbackClient?.onboarding_completed)
-      if (payloadCompleted) return '/dashboard'
-      if (payloadStep >= 0) return '/onboarding'
+      if (payloadCompleted) {
+        setOnboardingCompleted(true)
+        return '/dashboard'
+      }
+      if (payloadStep >= 0) {
+        setOnboardingCompleted(false)
+        return '/onboarding'
+      }
     }
 
     return '/dashboard'
@@ -102,6 +110,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('auth_client')
         setClient(null)
         setIsAuthenticated(false)
+        setOnboardingCompleted(null)
       }
     } finally {
       setLoading(false)
@@ -384,6 +393,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('auth_client')
       setClient(null)
       setIsAuthenticated(false)
+      setOnboardingCompleted(null)
       navigate('/login')
       notifySuccess('You have been logged out.')
     }
@@ -393,6 +403,7 @@ export const AuthProvider = ({ children }) => {
     client,
     isAuthenticated,
     loading,
+    onboardingCompleted,
     login,
     continueWithGoogle,
     register,
