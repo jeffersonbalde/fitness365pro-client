@@ -208,7 +208,10 @@ export const AuthProvider = ({ children }) => {
 
       // Handle API errors
       const errData = error?.response?.data || {}
-      const msg = errData.message || error?.message || 'Google sign in failed'
+      let msg = errData.message || error?.message || 'Google sign in failed'
+      if (/route v1\/auth\/google could not be found/i.test(msg)) {
+        msg = 'API URL is misconfigured. Set VITE_LARAVEL_API to your Laravel server URL (must include /api), then redeploy the client.'
+      }
       notifyError(msg)
       return { success: false, message: msg, errors: errData.errors || {} }
     }

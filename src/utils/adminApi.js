@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_LARAVEL_API || 'http://localhost:8000/api'
+import { getApiBaseUrl } from './apiBaseUrl'
+
+const API_BASE_URL = getApiBaseUrl()
 
 const ADMIN_ACCESS_TOKEN_KEY = 'admin_token' // short-lived (sessionStorage)
 const ADMIN_REFRESH_TOKEN_KEY = 'admin_refresh_token' // long-lived (dev localStorage)
