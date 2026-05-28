@@ -1,6 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { apiRequest, ensureAccessToken, getRefreshToken, setRefreshToken } from '../utils/api'
+import {
+  apiRequest,
+  cancelAccessTokenRefresh,
+  clearAuthSession,
+  ensureAccessToken,
+  getRefreshToken,
+  isRefreshTokenExpired,
+  persistAuthSession,
+  scheduleAccessTokenRefresh,
+} from '../utils/api'
 import { notifySuccess, notifyError, showLoadingModal, closeLoadingModal } from '../utils/notifications'
 import { signInWithGoogle } from '../utils/firebase'
 
@@ -49,17 +58,38 @@ export const AuthProvider = ({ children }) => {
     return '/dashboard'
   }
 
-  // Check if user is authenticated on mount
+  useEffect(() => {
+    const onSessionCleared = () => {
+      cancelAccessTokenRefresh()
+      setClient(null)
+      setIsAuthenticated(false)
+      setOnboardingCompleted(null)
+    }
+
+    window.addEventListener('auth:session-cleared', onSessionCleared)
+    return () => window.removeEventListener('auth:session-cleared', onSessionCleared)
+  }, [])
+
   useEffect(() => {
     checkAuth()
+    return () => cancelAccessTokenRefresh()
   }, [])
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      cancelAccessTokenRefresh()
+      return undefined
+    }
+
+    scheduleAccessTokenRefresh()
+    return () => cancelAccessTokenRefresh()
+  }, [isAuthenticated])
 
   const checkAuth = async () => {
     try {
       const storedClient = localStorage.getItem('auth_client')
       const hasRefresh = !!getRefreshToken()
 
-      // If we have a stored client, show it immediately (don't wipe on transient errors)
       if (storedClient) {
         try {
           setClient(JSON.parse(storedClient))
@@ -68,23 +98,29 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      if (!hasRefresh) {
+      if (!hasRefresh || isRefreshTokenExpired()) {
+        if (hasRefresh && isRefreshTokenExpired()) {
+          clearAuthSession()
+        }
+        setClient(null)
         setIsAuthenticated(false)
+        setOnboardingCompleted(null)
         return
       }
 
-      // Ensure we have an access token on reload (sessionStorage can be empty)
-      await ensureAccessToken()
+      const accessToken = await ensureAccessToken()
+      if (!accessToken) {
+        clearAuthSession()
+        setClient(null)
+        setIsAuthenticated(false)
+        setOnboardingCompleted(null)
+        return
+      }
 
-      // Verify / refresh access token (apiRequest will refresh on 401 automatically)
       const response = await apiRequest('/v1/auth/me', { method: 'GET' })
       const clientData = response.data.data.client
+      persistAuthSession({ client: clientData })
       setClient(clientData)
-      try {
-        localStorage.setItem('auth_client', JSON.stringify(clientData))
-      } catch {
-        // ignore quota / private mode
-      }
       setIsAuthenticated(true)
 
       const targetRoute = await resolvePostAuthRoute(clientData)
@@ -106,8 +142,7 @@ export const AuthProvider = ({ children }) => {
 
       // Only clear if auth is actually invalid (401). Network errors should not wipe state.
       if (status === 401) {
-        setRefreshToken(null)
-        localStorage.removeItem('auth_client')
+        clearAuthSession()
         setClient(null)
         setIsAuthenticated(false)
         setOnboardingCompleted(null)
@@ -125,14 +160,16 @@ export const AuthProvider = ({ children }) => {
       })
       
       if (response.data.success && response.data.data) {
-        const { client: clientData, token, refresh_token } = response.data.data
-        
-        // Store short-lived access token in sessionStorage (done by api layer on refresh, but set now)
-        sessionStorage.setItem('auth_token', token)
-        localStorage.setItem('auth_client', JSON.stringify(clientData))
-        if (refresh_token) setRefreshToken(refresh_token)
-        
-        // Update state synchronously
+        const { client: clientData, token, refresh_token, expires_in, refresh_expires_in } = response.data.data
+
+        persistAuthSession({
+          token,
+          expires_in,
+          refresh_token,
+          refresh_expires_in,
+          client: clientData,
+        })
+
         setClient(clientData)
         setIsAuthenticated(true)
         
@@ -181,11 +218,15 @@ export const AuthProvider = ({ children }) => {
       })
 
       if (res && res.data && res.data.success && res.data.data) {
-        const { client: clientData, token, refresh_token } = res.data.data
+        const { client: clientData, token, refresh_token, expires_in, refresh_expires_in } = res.data.data
 
-        sessionStorage.setItem('auth_token', token)
-        localStorage.setItem('auth_client', JSON.stringify(clientData))
-        if (refresh_token) setRefreshToken(refresh_token)
+        persistAuthSession({
+          token,
+          expires_in,
+          refresh_token,
+          refresh_expires_in,
+          client: clientData,
+        })
 
         setClient(clientData)
         setIsAuthenticated(true)
@@ -275,11 +316,15 @@ export const AuthProvider = ({ children }) => {
       })
 
       if (res.data.success && res.data.data) {
-        const { client: clientData, token, refresh_token } = res.data.data
+        const { client: clientData, token, refresh_token, expires_in, refresh_expires_in } = res.data.data
 
-        sessionStorage.setItem('auth_token', token)
-        localStorage.setItem('auth_client', JSON.stringify(clientData))
-        if (refresh_token) setRefreshToken(refresh_token)
+        persistAuthSession({
+          token,
+          expires_in,
+          refresh_token,
+          refresh_expires_in,
+          client: clientData,
+        })
 
         localStorage.removeItem('pending_verification_email')
 
@@ -387,10 +432,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error)
     } finally {
-      // Clear local storage regardless of API call success
-      sessionStorage.removeItem('auth_token')
-      setRefreshToken(null)
-      localStorage.removeItem('auth_client')
+      clearAuthSession()
       setClient(null)
       setIsAuthenticated(false)
       setOnboardingCompleted(null)

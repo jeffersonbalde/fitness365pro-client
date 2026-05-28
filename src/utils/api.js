@@ -2,8 +2,14 @@ import { getApiBaseUrl } from './apiBaseUrl'
 
 const API_BASE_URL = getApiBaseUrl()
 
-const ACCESS_TOKEN_KEY = 'auth_token' // short-lived (store in sessionStorage)
-const REFRESH_TOKEN_KEY = 'refresh_token' // long-lived (dev: localStorage)
+const ACCESS_TOKEN_KEY = 'auth_token'
+const REFRESH_TOKEN_KEY = 'refresh_token'
+const ACCESS_TOKEN_EXPIRES_AT_KEY = 'auth_token_expires_at'
+const REFRESH_TOKEN_EXPIRES_AT_KEY = 'refresh_token_expires_at'
+const AUTH_CLIENT_KEY = 'auth_client'
+
+const TOKEN_REFRESH_BUFFER_MS = 60 * 1000
+const DEFAULT_ACCESS_SECONDS = 3600
 
 const looksLikeHtmlResponse = (raw) => {
   const trimmed = (raw || '').trim().toLowerCase()
@@ -11,78 +17,224 @@ const looksLikeHtmlResponse = (raw) => {
 }
 
 const getAccessToken = () => sessionStorage.getItem(ACCESS_TOKEN_KEY)
+
 const setAccessToken = (token) => {
   if (token) sessionStorage.setItem(ACCESS_TOKEN_KEY, token)
   else sessionStorage.removeItem(ACCESS_TOKEN_KEY)
 }
 
 export const getRefreshToken = () => localStorage.getItem(REFRESH_TOKEN_KEY)
+
 export const setRefreshToken = (token) => {
   if (token) localStorage.setItem(REFRESH_TOKEN_KEY, token)
   else localStorage.removeItem(REFRESH_TOKEN_KEY)
 }
 
-export const ensureAccessToken = async () => {
-  // If we already have a valid access token in sessionStorage, keep it.
-  const existing = getAccessToken()
-  if (existing) return existing
+const setAccessTokenExpiry = (expiresInSeconds) => {
+  const seconds = Number(expiresInSeconds) || DEFAULT_ACCESS_SECONDS
+  sessionStorage.setItem(
+    ACCESS_TOKEN_EXPIRES_AT_KEY,
+    String(Date.now() + seconds * 1000),
+  )
+}
 
-  // Otherwise, try to mint a new access token using refresh token.
-  return await refreshAccessToken()
+const setRefreshTokenExpiry = (expiresInSeconds) => {
+  if (!expiresInSeconds) return
+  localStorage.setItem(
+    REFRESH_TOKEN_EXPIRES_AT_KEY,
+    String(Date.now() + Number(expiresInSeconds) * 1000),
+  )
+}
+
+export const isAccessTokenExpired = () => {
+  const token = getAccessToken()
+  if (!token) return true
+
+  const raw = sessionStorage.getItem(ACCESS_TOKEN_EXPIRES_AT_KEY)
+  if (!raw) return false
+
+  return Date.now() >= Number(raw) - TOKEN_REFRESH_BUFFER_MS
+}
+
+export const isRefreshTokenExpired = () => {
+  const token = getRefreshToken()
+  if (!token) return true
+
+  const raw = localStorage.getItem(REFRESH_TOKEN_EXPIRES_AT_KEY)
+  if (!raw) return false
+
+  return Date.now() >= Number(raw)
+}
+
+export const persistAuthSession = ({
+  token,
+  expires_in,
+  refresh_token,
+  refresh_expires_in,
+  client,
+} = {}) => {
+  if (token) {
+    setAccessToken(token)
+    setAccessTokenExpiry(expires_in)
+  }
+  if (refresh_token) {
+    setRefreshToken(refresh_token)
+    setRefreshTokenExpiry(refresh_expires_in)
+  }
+  if (client) {
+    try {
+      localStorage.setItem(AUTH_CLIENT_KEY, JSON.stringify(client))
+    } catch {
+      // ignore quota / private mode
+    }
+  }
+}
+
+export const clearAuthSession = () => {
+  setAccessToken(null)
+  setRefreshToken(null)
+  sessionStorage.removeItem(ACCESS_TOKEN_EXPIRES_AT_KEY)
+  localStorage.removeItem(REFRESH_TOKEN_EXPIRES_AT_KEY)
+  localStorage.removeItem(AUTH_CLIENT_KEY)
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('auth:session-cleared'))
+  }
+}
+
+let refreshInFlight = null
+let refreshTimerId = null
+
+const applyRefreshPayload = (data) => {
+  if (!data) return null
+  persistAuthSession({
+    token: data.token,
+    expires_in: data.expires_in,
+    refresh_token: data.refresh_token,
+    refresh_expires_in: data.refresh_expires_in,
+  })
+  return data.token || null
 }
 
 const refreshAccessToken = async () => {
-  const refreshToken = getRefreshToken()
-  if (!refreshToken) return null
+  if (refreshInFlight) return refreshInFlight
 
-  const res = await fetch(`${API_BASE_URL}/v1/auth/refresh`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    body: JSON.stringify({ refresh_token: refreshToken }),
-  })
+  refreshInFlight = (async () => {
+    const refreshToken = getRefreshToken()
+    if (!refreshToken || isRefreshTokenExpired()) {
+      clearAuthSession()
+      return null
+    }
 
-  const raw = await res.text()
-  const data = raw
-    ? (() => {
-        try {
-          return JSON.parse(raw)
-        } catch {
-          return { message: raw }
-        }
-      })()
-    : null
+    const res = await fetch(`${API_BASE_URL}/v1/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    })
 
-  if (!res.ok) {
-    // refresh token invalid/expired
-    setAccessToken(null)
-    setRefreshToken(null)
-    localStorage.removeItem('auth_client')
+    const raw = await res.text()
+    const data = raw
+      ? (() => {
+          try {
+            return JSON.parse(raw)
+          } catch {
+            return { message: raw }
+          }
+        })()
+      : null
+
+    if (!res.ok) {
+      clearAuthSession()
+      return null
+    }
+
+    return applyRefreshPayload(data?.data)
+  })()
+
+  try {
+    return await refreshInFlight
+  } finally {
+    refreshInFlight = null
+  }
+}
+
+export const ensureAccessToken = async () => {
+  if (isRefreshTokenExpired()) {
+    clearAuthSession()
     return null
   }
 
-  const token = data?.data?.token
-  const newRefresh = data?.data?.refresh_token
-  if (token) setAccessToken(token)
-  if (newRefresh) setRefreshToken(newRefresh) // rotation
-  return token || null
+  const existing = getAccessToken()
+  if (existing && !isAccessTokenExpired()) {
+    return existing
+  }
+
+  return refreshAccessToken()
 }
+
+export const scheduleAccessTokenRefresh = (onRefresh = null) => {
+  if (refreshTimerId) {
+    clearTimeout(refreshTimerId)
+    refreshTimerId = null
+  }
+
+  const raw = sessionStorage.getItem(ACCESS_TOKEN_EXPIRES_AT_KEY)
+  if (!raw) return
+
+  const delay = Number(raw) - Date.now() - TOKEN_REFRESH_BUFFER_MS
+  if (delay <= 0) {
+    refreshAccessToken().then((token) => {
+      if (token && typeof onRefresh === 'function') onRefresh(token)
+      scheduleAccessTokenRefresh(onRefresh)
+    })
+    return
+  }
+
+  refreshTimerId = setTimeout(async () => {
+    const token = await refreshAccessToken()
+    if (token && typeof onRefresh === 'function') onRefresh(token)
+    scheduleAccessTokenRefresh(onRefresh)
+  }, delay)
+}
+
+export const cancelAccessTokenRefresh = () => {
+  if (refreshTimerId) {
+    clearTimeout(refreshTimerId)
+    refreshTimerId = null
+  }
+}
+
+const isPublicAuthEndpoint = (endpoint) =>
+  endpoint === '/v1/auth/login'
+  || endpoint === '/v1/auth/register'
+  || endpoint === '/v1/auth/refresh'
+  || endpoint === '/v1/auth/google'
+  || endpoint === '/v1/auth/verify-email'
+  || endpoint === '/v1/auth/resend-otp'
+  || endpoint === '/v1/auth/forgot-password'
+  || endpoint === '/v1/auth/verify-reset-token'
+  || endpoint === '/v1/auth/reset-password'
 
 /**
  * Make API request
  */
 export const apiRequest = async (endpoint, options = {}) => {
-  const token = getAccessToken()
-  const isPublicAuthEndpoint =
-    endpoint === '/v1/auth/login' || endpoint === '/v1/auth/register'
+  const isPublicAuthEndpointCall = isPublicAuthEndpoint(endpoint)
   const isFormDataBody = options.body instanceof FormData
-  
+
+  if (!isPublicAuthEndpointCall && !options._retry) {
+    await ensureAccessToken()
+  }
+
+  const token = getAccessToken()
+
   const config = {
     method: options.method || 'GET',
     headers: {
-      'Accept': 'application/json',
+      Accept: 'application/json',
       ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     },
@@ -103,7 +255,6 @@ export const apiRequest = async (endpoint, options = {}) => {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
 
-    // Some failures return HTML/text (or empty response). Parse safely.
     const raw = await response.text()
     const data = raw
       ? (() => {
@@ -122,8 +273,8 @@ export const apiRequest = async (endpoint, options = {}) => {
         response: {
           data: {
             message: timedOut
-              ? 'The server took too long to respond (gateway timeout). Please try again. If this keeps happening, redeploy the API after running migrations — the feed query was optimized to fix this.'
-              : `The server returned a web page instead of JSON from ${API_BASE_URL}${endpoint}. Check that your API component is running and the route exists.`,
+              ? 'The server took too long to respond (gateway timeout). Please try again.'
+              : `The server returned a web page instead of JSON from ${API_BASE_URL}${endpoint}.`,
             errors: {},
           },
           status: response.status || 502,
@@ -131,10 +282,8 @@ export const apiRequest = async (endpoint, options = {}) => {
       }
     }
 
-    // Handle 401 Unauthorized
     if (response.status === 401) {
-      // If access token is missing/expired, try refresh once for protected endpoints.
-      if (!isPublicAuthEndpoint && !options._retry) {
+      if (!isPublicAuthEndpointCall && !options._retry) {
         const refreshed = await refreshAccessToken()
         if (refreshed) {
           return apiRequest(endpoint, {
@@ -148,10 +297,8 @@ export const apiRequest = async (endpoint, options = {}) => {
         }
       }
 
-      // Don't hard-redirect. Clear only when this was a protected call with an access token.
-      if (token && !isPublicAuthEndpoint) {
-        setAccessToken(null)
-        localStorage.removeItem('auth_client')
+      if (token && !isPublicAuthEndpointCall) {
+        clearAuthSession()
       }
 
       throw {
@@ -176,7 +323,7 @@ export const apiRequest = async (endpoint, options = {}) => {
     if (error.response) {
       throw error
     }
-    // Network error
+
     throw {
       response: {
         data: {
@@ -188,4 +335,3 @@ export const apiRequest = async (endpoint, options = {}) => {
     }
   }
 }
-
