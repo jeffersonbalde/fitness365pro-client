@@ -14,6 +14,10 @@ import ProfileEarnedEventBadges from '../../components/profile/ProfileEarnedEven
 import { ProfileJoinedEventsSection } from '../../components/profile/JoinedChallengeEvents.jsx'
 import { TimelineLinkedEventCallout } from '../../components/profile/TimelineLinkedEventCallout.jsx'
 import { isJoinedChallengeGoalCompleted } from '../challenges/eventCatalog'
+import {
+  isAcceptableWorkoutImageFile,
+  WORKOUT_IMAGE_ACCEPT,
+} from '../../utils/workoutImages'
 
 const formatLongDate = (value) => {
   if (!value) return 'Not set'
@@ -1207,8 +1211,8 @@ const Profile = () => {
       editExistingImages.forEach((imageUrl) => {
         payload.append('keep_workout_images[]', imageUrl)
       })
-      editNewImages.forEach((imageFile) => {
-        payload.append('workout_images[]', imageFile)
+      editNewImages.forEach((imageFile, index) => {
+        payload.append(`workout_images[${index}]`, imageFile, imageFile.name || `photo-${index + 1}.jpg`)
       })
 
       await apiRequest(`/v1/workouts/${editingWorkout.id}`, {
@@ -1267,7 +1271,14 @@ const Profile = () => {
     const files = Array.from(event.target.files || [])
     event.target.value = ''
     if (!files.length) return
-    setEditNewImages((prev) => [...prev, ...files])
+
+    const accepted = files.filter((file) => isAcceptableWorkoutImageFile(file))
+    if (accepted.length !== files.length) {
+      notifyError('One or more files were skipped because they are not supported image formats.')
+    }
+    if (accepted.length > 0) {
+      setEditNewImages((prev) => [...prev, ...accepted])
+    }
   }
 
   const toggleProfileGoal = (goalId) => {
@@ -2796,7 +2807,7 @@ const Profile = () => {
                     <input
                       ref={workoutEditImageInputRef}
                       type="file"
-                      accept="image/*"
+                      accept={WORKOUT_IMAGE_ACCEPT}
                       multiple
                       onChange={handleEditImageSelect}
                       style={{ display: 'none' }}

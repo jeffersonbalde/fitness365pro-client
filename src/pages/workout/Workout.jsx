@@ -2,6 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { apiRequest } from '../../utils/api'
 import { notifySuccess, notifyError } from '../../utils/notifications'
+import {
+  isAcceptableWorkoutImageFile,
+  normalizeApiFieldErrors,
+  WORKOUT_IMAGE_ACCEPT,
+} from '../../utils/workoutImages'
 import { isJoinedChallengeGoalCompleted } from '../challenges/eventCatalog'
 import './Workout.css'
 
@@ -95,11 +100,32 @@ const Workout = () => {
     const files = Array.from(e.target.files || [])
     if (!files.length) return
 
-    const imageFiles = files.filter(file => file.type.startsWith('image/'))
-    if (imageFiles.length !== files.length) {
-      notifyError('Only image files are allowed.')
+    const accepted = []
+    const rejected = []
+
+    files.forEach((file) => {
+      if (isAcceptableWorkoutImageFile(file)) {
+        accepted.push(file)
+      } else {
+        rejected.push(file.name || 'Unknown file')
+      }
+    })
+
+    if (rejected.length > 0) {
+      notifyError(`Unsupported file type: ${rejected.join(', ')}`)
     }
-    setSelectedImages(prev => [...prev, ...imageFiles])
+
+    if (accepted.length > 0) {
+      setSelectedImages((prev) => [...prev, ...accepted])
+      if (errors.workout_images) {
+        setErrors((prev) => {
+          const next = { ...prev }
+          delete next.workout_images
+          return next
+        })
+      }
+    }
+
     e.target.value = ''
   }
 
@@ -212,8 +238,8 @@ const Workout = () => {
         formPayload.append('admin_event_id', linkedEventId ? String(linkedEventId).trim() : '')
       }
 
-      selectedImages.forEach(file => {
-        formPayload.append('workout_images[]', file)
+      selectedImages.forEach((file, index) => {
+        formPayload.append(`workout_images[${index}]`, file, file.name || `photo-${index + 1}.jpg`)
       })
 
       const res = await apiRequest('/v1/workouts', {
@@ -228,11 +254,13 @@ const Workout = () => {
       }
     } catch (error) {
       console.error('Failed to log workout', error)
-      const apiErrors = error?.response?.data?.errors || {}
+      const apiErrors = normalizeApiFieldErrors(error?.response?.data?.errors || {})
+      if (Object.keys(apiErrors).length > 0) {
+        setErrors(apiErrors)
+      }
       const firstFieldError = Object.values(apiErrors)[0]
-      const normalizedFirstError = Array.isArray(firstFieldError) ? firstFieldError[0] : firstFieldError
       const errorMsg =
-        normalizedFirstError ||
+        firstFieldError ||
         error?.response?.data?.message ||
         'Failed to log workout. Please try again.'
       notifyError(errorMsg)
@@ -528,7 +556,7 @@ const Workout = () => {
                           <input
                             id="workout_images"
                             type="file"
-                            accept="image/*"
+                            accept={WORKOUT_IMAGE_ACCEPT}
                             multiple
                             className="form-control image-upload-input"
                             onChange={handleImageSelect}
