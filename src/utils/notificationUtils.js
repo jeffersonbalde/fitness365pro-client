@@ -37,6 +37,8 @@ export const resolveNotificationLink = (notification) => {
   return null
 }
 
+export const isNotificationInteractive = (notification) => Boolean(resolveNotificationLink(notification))
+
 export const formatNotificationTime = (iso) => {
   if (!iso) return ''
   const date = new Date(iso)
