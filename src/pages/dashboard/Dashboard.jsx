@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { apiRequest } from '../../utils/api'
+import { resolveMediaUrl } from '../../utils/mediaUrl'
 import { notifyError } from '../../utils/notifications'
 import AppModalTransition from '../../components/AppModalTransition.jsx'
 import { AppLoadingState } from '../../components/AppLoadingState.jsx'
@@ -10,16 +11,6 @@ import ChallengeProgressHistoryModal from '../../components/profile/ChallengePro
 import { TimelineLinkedEventCallout } from '../../components/profile/TimelineLinkedEventCallout.jsx'
 import './Dashboard.css'
 import '../profile/Profile.css'
-
-const API_BASE_URL = import.meta.env.VITE_LARAVEL_API || 'http://localhost:8000/api'
-const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '')
-
-const resolveMediaUrl = (url) => {
-  if (!url) return ''
-  if (url.startsWith('http://') || url.startsWith('https://')) return url
-  if (url.startsWith('/')) return `${API_ORIGIN}${url}`
-  return `${API_ORIGIN}/${url}`
-}
 
 const formatFeedDate = (value) => {
   if (!value) return ''
@@ -172,13 +163,22 @@ const Dashboard = () => {
   const togglePostLike = async (entry) => {
     if (entry?.entry_type === 'admin_post') return
     if (!entry?.id || postLikeBusyByWorkout[entry.id]) return
+
+    const wasLiked = Boolean(entry.is_liked_by_me)
+    const previousCount = Number(entry.likes_count || 0)
     setPostLikeBusyByWorkout((prev) => ({ ...prev, [entry.id]: true }))
+    updateFeedEntry(entry.id, (prev) => ({
+      ...prev,
+      is_liked_by_me: !wasLiked,
+      likes_count: Math.max(0, previousCount + (wasLiked ? -1 : 1)),
+    }))
+
     try {
       const response = await apiRequest(`/v1/workouts/${entry.id}/likes`, {
-        method: entry.is_liked_by_me ? 'DELETE' : 'POST',
+        method: wasLiked ? 'DELETE' : 'POST',
       })
       if (response.data?.success) {
-        const data = response.data?.data || {}
+        const data = response.data.data || {}
         updateFeedEntry(entry.id, (prev) => ({
           ...prev,
           is_liked_by_me: Boolean(data.is_liked_by_me),
@@ -186,6 +186,11 @@ const Dashboard = () => {
         }))
       }
     } catch (error) {
+      updateFeedEntry(entry.id, (prev) => ({
+        ...prev,
+        is_liked_by_me: wasLiked,
+        likes_count: previousCount,
+      }))
       notifyError(error?.response?.data?.message || 'Failed to update like.')
     } finally {
       setPostLikeBusyByWorkout((prev) => ({ ...prev, [entry.id]: false }))

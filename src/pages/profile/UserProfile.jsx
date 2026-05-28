@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { apiRequest } from '../../utils/api'
+import { resolveMediaUrl } from '../../utils/mediaUrl'
 import { notifyError } from '../../utils/notifications'
 import AppModalTransition from '../../components/AppModalTransition.jsx'
 import { AppLoadingState } from '../../components/AppLoadingState.jsx'
@@ -9,16 +10,6 @@ import ProfileEarnedEventBadges from '../../components/profile/ProfileEarnedEven
 import './Profile.css'
 import { ProfileJoinedEventsSection } from '../../components/profile/JoinedChallengeEvents.jsx'
 import { TimelineLinkedEventCallout } from '../../components/profile/TimelineLinkedEventCallout.jsx'
-
-const API_BASE_URL = import.meta.env.VITE_LARAVEL_API || 'http://localhost:8000/api'
-const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '')
-
-const resolveMediaUrl = (url) => {
-  if (!url) return ''
-  if (url.startsWith('http://') || url.startsWith('https://')) return url
-  if (url.startsWith('/')) return `${API_ORIGIN}${url}`
-  return `${API_ORIGIN}/${url}`
-}
 
 const formatLongDate = (value) => {
   if (!value) return 'Not set'
@@ -204,13 +195,22 @@ const UserProfile = () => {
 
   const togglePostLike = async (entry) => {
     if (!entry?.id || postLikeBusyByWorkout[entry.id]) return
+
+    const wasLiked = Boolean(entry.is_liked_by_me)
+    const previousCount = Number(entry.likes_count || 0)
     setPostLikeBusyByWorkout((prev) => ({ ...prev, [entry.id]: true }))
+    updateTimelineEntry(entry.id, (prev) => ({
+      ...prev,
+      is_liked_by_me: !wasLiked,
+      likes_count: Math.max(0, previousCount + (wasLiked ? -1 : 1)),
+    }))
+
     try {
       const response = await apiRequest(`/v1/workouts/${entry.id}/likes`, {
-        method: entry.is_liked_by_me ? 'DELETE' : 'POST',
+        method: wasLiked ? 'DELETE' : 'POST',
       })
       if (response.data?.success) {
-        const data = response.data?.data || {}
+        const data = response.data.data || {}
         updateTimelineEntry(entry.id, (prev) => ({
           ...prev,
           is_liked_by_me: Boolean(data.is_liked_by_me),
@@ -218,6 +218,11 @@ const UserProfile = () => {
         }))
       }
     } catch (error) {
+      updateTimelineEntry(entry.id, (prev) => ({
+        ...prev,
+        is_liked_by_me: wasLiked,
+        likes_count: previousCount,
+      }))
       notifyError(error?.response?.data?.message || 'Failed to update like.')
     } finally {
       setPostLikeBusyByWorkout((prev) => ({ ...prev, [entry.id]: false }))
