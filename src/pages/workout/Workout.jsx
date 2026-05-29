@@ -39,9 +39,27 @@ const Workout = () => {
   const [selectedImages, setSelectedImages] = useState([])
   const [imagePreviews, setImagePreviews] = useState([])
   const [joinedChallenges, setJoinedChallenges] = useState([])
+  const [joinedChallengesLoading, setJoinedChallengesLoading] = useState(true)
   const [linkedEventId, setLinkedEventId] = useState(() =>
     location.state?.adminEventId ? String(location.state.adminEventId) : '',
   )
+
+  const prefilledEvent = useMemo(() => {
+    const id = location.state?.adminEventId
+    if (!id) return null
+    return {
+      id: String(id),
+      name: location.state?.adminEventName || 'Selected event',
+      goalKm:
+        location.state?.adminEventGoalKm != null
+          ? Number(location.state.adminEventGoalKm)
+          : null,
+    }
+  }, [
+    location.state?.adminEventId,
+    location.state?.adminEventName,
+    location.state?.adminEventGoalKm,
+  ])
 
   useEffect(() => {
     if (location.state?.adminEventId) {
@@ -52,6 +70,7 @@ const Workout = () => {
   useEffect(() => {
     let cancelled = false
     const loadChallenges = async () => {
+      setJoinedChallengesLoading(true)
       try {
         const res = await apiRequest('/v1/workouts/stats', { method: 'GET' })
         if (!cancelled && res.data?.success && Array.isArray(res.data?.data?.joined_challenge_events)) {
@@ -59,6 +78,8 @@ const Workout = () => {
         }
       } catch {
         /* optional picker */
+      } finally {
+        if (!cancelled) setJoinedChallengesLoading(false)
       }
     }
     loadChallenges()
@@ -74,12 +95,44 @@ const Workout = () => {
   )
 
   useEffect(() => {
-    if (!linkedEventId || joinedChallenges.length === 0) return
+    if (joinedChallengesLoading) return
+    if (!linkedEventId) return
+    if (joinedChallenges.length === 0) {
+      if (prefilledEvent && linkedEventId === prefilledEvent.id) return
+      return
+    }
     const allowed = joinedChallenges.some(
       (ev) => String(ev.event_id) === linkedEventId && !isJoinedChallengeGoalCompleted(ev),
     )
-    if (!allowed) setLinkedEventId('')
-  }, [joinedChallenges, linkedEventId])
+    if (!allowed && !(prefilledEvent && linkedEventId === prefilledEvent.id)) {
+      setLinkedEventId('')
+    }
+  }, [joinedChallenges, joinedChallengesLoading, linkedEventId, prefilledEvent])
+
+  const showEventLinker = workoutData.entry_type === 'workout'
+    && (Boolean(prefilledEvent) || joinedChallengesLoading || activeJoinedChallenges.length > 0)
+
+  const selectedEventLabel = useMemo(() => {
+    if (!linkedEventId) return null
+    const fromList = activeJoinedChallenges.find(
+      (ev) => String(ev.event_id) === linkedEventId,
+    )
+    if (fromList) return fromList.title || 'Challenge'
+    if (prefilledEvent && prefilledEvent.id === linkedEventId) return prefilledEvent.name
+    return null
+  }, [activeJoinedChallenges, linkedEventId, prefilledEvent])
+
+  const selectedEventGoalLabel = useMemo(() => {
+    if (!linkedEventId) return null
+    const fromList = activeJoinedChallenges.find(
+      (ev) => String(ev.event_id) === linkedEventId,
+    )
+    const goalKm = fromList?.progress_goal_km ?? prefilledEvent?.goalKm
+    if (typeof goalKm === 'number' && goalKm > 0) {
+      return `Goal ${goalKm} km`
+    }
+    return null
+  }, [activeJoinedChallenges, linkedEventId, prefilledEvent])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -300,6 +353,60 @@ const Workout = () => {
 
                 {workoutData.entry_type === 'workout' ? (
                   <section className="workout-block">
+                    {showEventLinker && (
+                      <div className="mb-4 workout-section workout-linked-event-section">
+                        <label htmlFor="linked_challenge_event" className="form-label workout-label">
+                          Event for this workout
+                        </label>
+                        {prefilledEvent && linkedEventId === prefilledEvent.id && (
+                          <div className="workout-linked-event-card" role="status">
+                            <div className="workout-linked-event-card__badge">Linked event</div>
+                            <div className="workout-linked-event-card__title">
+                              {selectedEventLabel || prefilledEvent.name}
+                            </div>
+                            {selectedEventGoalLabel && (
+                              <div className="workout-linked-event-card__meta">{selectedEventGoalLabel}</div>
+                            )}
+                            <p className="workout-linked-event-card__hint mb-0">
+                              This workout will count toward the event you opened from. You can change it below if needed.
+                            </p>
+                          </div>
+                        )}
+                        {joinedChallengesLoading ? (
+                          <div className="workout-linked-event-loading" aria-live="polite">
+                            Loading your joined events…
+                          </div>
+                        ) : activeJoinedChallenges.length > 0 ? (
+                          <>
+                            <select
+                              id="linked_challenge_event"
+                              className="form-select workout-input"
+                              value={linkedEventId}
+                              onChange={(e) => setLinkedEventId(e.target.value)}
+                              aria-describedby="linked_challenge_help"
+                            >
+                              <option value="">Do not attach to an event</option>
+                              {activeJoinedChallenges.map((ev) => (
+                                <option key={ev.event_id} value={ev.event_id}>
+                                  {ev.title || 'Challenge'}
+                                  {typeof ev.progress_goal_km === 'number' && ev.progress_goal_km > 0
+                                    ? ` · goal ${ev.progress_goal_km} km`
+                                    : ''}
+                                </option>
+                              ))}
+                            </select>
+                            <div id="linked_challenge_help" className="small text-muted mt-1 workout-help-muted">
+                              Distance is sent for review before it counts toward the event.
+                            </div>
+                          </>
+                        ) : prefilledEvent && linkedEventId === prefilledEvent.id ? (
+                          <div id="linked_challenge_help" className="small text-muted mt-1 workout-help-muted">
+                            Your event is pre-selected from the Events page.
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
+
                     <div className="mb-3 workout-section">
                         <label htmlFor="workout_type" className="form-label workout-label">
                           Activity type *
@@ -411,34 +518,6 @@ const Workout = () => {
                           <small className="text-danger d-block mt-1">{errors.duration_seconds}</small>
                         )}
                     </div>
-
-                    {activeJoinedChallenges.length > 0 ? (
-                      <div className="mb-3 workout-section">
-                        <label htmlFor="linked_challenge_event" className="form-label workout-label">
-                          Count toward challenge (optional)
-                        </label>
-                        <select
-                          id="linked_challenge_event"
-                          className="form-select workout-input"
-                          value={linkedEventId}
-                          onChange={(e) => setLinkedEventId(e.target.value)}
-                          aria-describedby="linked_challenge_help"
-                        >
-                          <option value="">Do not attach to an event</option>
-                          {activeJoinedChallenges.map((ev) => (
-                            <option key={ev.event_id} value={ev.event_id}>
-                              {ev.title || 'Challenge'}
-                              {typeof ev.progress_goal_km === 'number' && ev.progress_goal_km > 0
-                                ? ` · goal ${ev.progress_goal_km} km`
-                                : ''}
-                            </option>
-                          ))}
-                        </select>
-                        <div id="linked_challenge_help" className="small text-muted mt-1 workout-help-muted">
-                          Completed events do not appear here. Distance is sent for review before it counts.
-                        </div>
-                      </div>
-                    ) : null}
                   </section>
                 ) : (
                   <section className="workout-block">

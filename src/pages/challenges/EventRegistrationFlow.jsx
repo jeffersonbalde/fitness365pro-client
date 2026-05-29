@@ -143,6 +143,7 @@ const EventRegistrationFlow = () => {
   const [fulfillmentErrors, setFulfillmentErrors] = useState({})
   const [stepIndex, setStepIndex] = useState(0)
   const [busy, setBusy] = useState(false)
+  const [summarySyncing, setSummarySyncing] = useState(false)
 
   const [distanceValue, setDistanceValue] = useState('')
   const [packageValue, setPackageValue] = useState('')
@@ -215,6 +216,17 @@ const EventRegistrationFlow = () => {
       if (withSpinner) setLoading(false)
     }
   }, [eventId, navigate])
+
+  const refreshRegistrationState = useCallback(async () => {
+    setSummarySyncing(true)
+    try {
+      await reloadAll({ withSpinner: false })
+    } catch (error) {
+      console.warn('Registration refresh skipped', error)
+    } finally {
+      setSummarySyncing(false)
+    }
+  }, [reloadAll])
 
   useEffect(() => {
     reloadAll({ withSpinner: true })
@@ -563,18 +575,21 @@ const EventRegistrationFlow = () => {
 
         setFulfillmentErrors({})
 
+        const fulfillmentTasks = [saveDeliveryPayload()]
         if (needsKitSelections && eventPayload?.category === 'running') {
-          await submitRunningSelection()
+          fulfillmentTasks.unshift(submitRunningSelection())
         } else if (needsKitSelections && eventPayload?.category === 'gym') {
-          await submitGymSelection()
+          fulfillmentTasks.unshift(submitGymSelection())
         }
-
-        await saveDeliveryPayload()
+        await Promise.all(fulfillmentTasks)
       }
 
       if (steps[stepIndex + 1]) {
-        await reloadAll({ withSpinner: false })
+        const nextStepKey = steps[stepIndex + 1]
         setStepIndex((i) => i + 1)
+        if (nextStepKey === 'summary') {
+          void refreshRegistrationState()
+        }
       }
     } catch (error) {
       const data = error?.response?.data
@@ -617,7 +632,6 @@ const EventRegistrationFlow = () => {
         method: 'POST',
         body: {},
       })
-      await reloadAll({ withSpinner: false })
       if (!res.data?.success) return
 
       if (res.data?.data?.requires_payment) {
@@ -1472,7 +1486,11 @@ const EventRegistrationFlow = () => {
                       <RegSummaryIconFulfillment />
                       <span className="registration-summary-panel__heading">Package &amp; delivery</span>
                     </div>
-                    {paymentSummaryFulfillmentRows.length === 0 ? (
+                    {summarySyncing && paymentSummaryFulfillmentRows.length === 0 ? (
+                      <p className="registration-summary-panel__empty mb-0">
+                        Loading package details…
+                      </p>
+                    ) : paymentSummaryFulfillmentRows.length === 0 ? (
                       <p className="registration-summary-panel__empty mb-0">
                         No package or delivery lines apply to this registration.
                       </p>

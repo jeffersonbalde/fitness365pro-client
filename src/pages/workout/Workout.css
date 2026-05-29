@@ -15,6 +15,67 @@
   color: var(--workout-help-fg);
 }
 
+.workout-linked-event-section {
+  border: 1px solid var(--app-border, #dde5f0);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--app-surface-2, #f8fafc);
+}
+
+.workout-linked-event-card {
+  border: 1px solid rgba(29, 121, 188, 0.28);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+  background: rgba(29, 121, 188, 0.06);
+}
+
+.workout-linked-event-card__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--brand-primary, #1d79bc);
+  background: rgba(29, 121, 188, 0.12);
+  margin-bottom: 8px;
+}
+
+.workout-linked-event-card__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--app-text, #0f172a);
+  line-height: 1.35;
+}
+
+.workout-linked-event-card__meta {
+  margin-top: 4px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--brand-green-dark, #15803d);
+}
+
+.workout-linked-event-card__hint {
+  margin-top: 8px;
+  font-size: 0.82rem;
+  color: var(--workout-help-fg);
+  line-height: 1.45;
+}
+
+.workout-linked-event-loading {
+  font-size: 0.88rem;
+  color: var(--workout-help-fg);
+  padding: 10px 0 2px;
+}
+
+[data-theme='dark'] .workout-linked-event-card {
+  background: rgba(29, 121, 188, 0.12);
+  border-color: rgba(61, 158, 224, 0.35);
+}
+
 [data-theme='dark'] .workout-page {
   --workout-help-fg: #9fb3ce;
 }
@@ -362,6 +423,10 @@
 
   .workout-type-grid {
     grid-template-columns: 1fr;
+  }
+
+  .workout-linked-event-card {
+    padding: 12px;
   }
 
   .image-preview-grid {

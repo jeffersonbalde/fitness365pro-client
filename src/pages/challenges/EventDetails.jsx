@@ -98,6 +98,11 @@ const EventDetails = () => {
         navigate('/workout', {
           state: {
             adminEventId: eventId,
+            adminEventName: event?.name || '',
+            adminEventGoalKm:
+              event?.challengeProgress?.goalKm
+              ?? event?.challengeProgress?.mileageChallengeKm
+              ?? null,
             returnTo: `/challenges/${eventId}`,
           },
         })
