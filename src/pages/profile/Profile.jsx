@@ -18,6 +18,11 @@ import { isJoinedChallengeGoalCompleted } from '../challenges/eventCatalog'
 import {
   isAcceptableWorkoutImageFile,
   WORKOUT_IMAGE_ACCEPT,
+  PROFILE_IMAGE_ACCEPT,
+  MAX_PROFILE_IMAGE_BYTES,
+  MAX_COVER_IMAGE_BYTES,
+  validateProfileImageFile,
+  getProfileUploadErrorMessage,
 } from '../../utils/workoutImages'
 import {
   cmToFeetInches,
@@ -377,7 +382,11 @@ const Profile = () => {
     try {
       const response = await apiRequest('/v1/profile', { method: 'GET' })
       if (response.data.success) {
-        setProfile(response.data.data.profile)
+        const profileData = response.data.data.profile
+        setProfile(profileData)
+        if (client?.id) {
+          setCachedProfilePictureUrl(client.id, profileData?.profile_picture_url || '')
+        }
         const goals = response.data.data.goals || []
         setProfileGoals(goals)
         setSelectedGoalIds(goals.map((goal) => goal.id))
@@ -904,6 +913,15 @@ const Profile = () => {
     event.target.value = ''
     if (!file) return
 
+    const validationError = validateProfileImageFile(file, {
+      maxBytes: MAX_PROFILE_IMAGE_BYTES,
+      label: 'Profile photo',
+    })
+    if (validationError) {
+      notifyError(validationError)
+      return
+    }
+
     const formData = new FormData()
     formData.append('profile_picture', file)
     setUploadingAvatar(true)
@@ -917,8 +935,7 @@ const Profile = () => {
         await refreshProfile()
       }
     } catch (error) {
-      const msg = error?.response?.data?.message || 'Failed to upload profile photo.'
-      notifyError(msg)
+      notifyError(getProfileUploadErrorMessage(error, 'profile_picture', 'Failed to upload profile photo.'))
     } finally {
       setUploadingAvatar(false)
     }
@@ -928,6 +945,15 @@ const Profile = () => {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
+
+    const validationError = validateProfileImageFile(file, {
+      maxBytes: MAX_COVER_IMAGE_BYTES,
+      label: 'Cover photo',
+    })
+    if (validationError) {
+      notifyError(validationError)
+      return
+    }
 
     const formData = new FormData()
     formData.append('cover_photo', file)
@@ -942,8 +968,7 @@ const Profile = () => {
         await refreshProfile()
       }
     } catch (error) {
-      const msg = error?.response?.data?.message || 'Failed to upload cover photo.'
-      notifyError(msg)
+      notifyError(getProfileUploadErrorMessage(error, 'cover_photo', 'Failed to upload cover photo.'))
     } finally {
       setUploadingCover(false)
     }
@@ -1426,7 +1451,7 @@ const Profile = () => {
                   <input
                     ref={coverPhotoInputRef}
                     type="file"
-                    accept="image/*"
+                    accept={PROFILE_IMAGE_ACCEPT}
                     onChange={handleCoverPhotoUpload}
                     style={{ display: 'none' }}
                   />
@@ -1435,7 +1460,7 @@ const Profile = () => {
               <input
                 ref={profilePhotoInputRef}
                 type="file"
-                accept="image/*"
+                accept={PROFILE_IMAGE_ACCEPT}
                 onChange={handleProfilePhotoUpload}
                 style={{ display: 'none' }}
                 aria-hidden="true"
