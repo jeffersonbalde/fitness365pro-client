@@ -977,6 +977,14 @@ nav.auth-navbar .navbar-brand img.auth-navbar-logo-img {
     padding: 0.5rem 0.25rem !important;
   }
 
+  ul.auth-navbar-menu-links .auth-navbar-mobile-link--active {
+    box-shadow: inset 0 -2px 0 var(--brand-primary, #1d79bc);
+  }
+
+  [data-theme='dark'] ul.auth-navbar-menu-links .auth-navbar-mobile-link--active {
+    box-shadow: inset 0 -2px 0 var(--brand-primary, #3d9ee0);
+  }
+
   ul.auth-navbar-menu-links .auth-navbar-mobile-submenu.dropdown-menu {
     position: absolute !important;
     width: auto !important;

@@ -104,6 +104,21 @@ const AuthNavbar = () => {
         dropdownHeader: '#6b7280',
       }
 
+  const pathname = location.pathname
+  const isFeedActive = pathname === '/dashboard'
+  const isTrainingActive = pathname.startsWith('/workout')
+  const isLeaderboardsActive = pathname.startsWith('/leaderboards')
+  const isEventsActive = pathname.startsWith('/challenges')
+
+  const navLinkProps = (active) => ({
+    className: `nav-link auth-navbar-mobile-link${active ? ' auth-navbar-mobile-link--active' : ''}`,
+    style: {
+      fontSize: '0.9rem',
+      fontWeight: active ? 600 : 500,
+      color: active ? palette.navPrimary : palette.navMuted,
+    },
+  })
+
   const handleLogout = async () => {
     if (isLoggingOut) return
 
@@ -467,9 +482,8 @@ const AuthNavbar = () => {
         >
             <li className="nav-item d-none d-lg-block">
               <Link
-                className={`nav-link auth-navbar-mobile-link${location.pathname === '/dashboard' ? ' auth-navbar-mobile-link--active' : ''}`}
+                {...navLinkProps(isFeedActive)}
                 to="/dashboard"
-                style={{ fontSize: '0.9rem', fontWeight: 600, color: palette.navPrimary }}
                 onClick={() => setShowMenu(false)}
               >
                 <span className={mobileNavIconClass} aria-hidden>
@@ -489,8 +503,12 @@ const AuthNavbar = () => {
               <div className="dropdown w-100 w-lg-auto" ref={workoutMenuRef}>
                 <button
                   type="button"
-                  className="nav-link auth-navbar-mobile-link auth-navbar-mobile-link--trigger btn border-0 bg-transparent w-100 text-start d-inline-flex align-items-center gap-2"
-                  style={{ fontSize: '0.9rem', fontWeight: 500, color: palette.navMuted }}
+                  className={`nav-link auth-navbar-mobile-link auth-navbar-mobile-link--trigger btn border-0 bg-transparent w-100 text-start d-inline-flex align-items-center gap-2${isTrainingActive ? ' auth-navbar-mobile-link--active' : ''}`}
+                  style={{
+                    fontSize: '0.9rem',
+                    fontWeight: isTrainingActive ? 600 : 500,
+                    color: isTrainingActive ? palette.navPrimary : palette.navMuted,
+                  }}
                   aria-expanded={showWorkoutMenu}
                   onClick={() => {
                     setShowUserMenu(false)
@@ -555,9 +573,8 @@ const AuthNavbar = () => {
             </li>
             <li className="nav-item d-none d-lg-block">
               <Link
-                className={`nav-link auth-navbar-mobile-link${location.pathname.startsWith('/leaderboards') ? ' auth-navbar-mobile-link--active' : ''}`}
+                {...navLinkProps(isLeaderboardsActive)}
                 to="/leaderboards"
-                style={{ fontSize: '0.9rem', fontWeight: 500, color: palette.navMuted }}
                 onClick={() => setShowMenu(false)}
               >
                 <span className={mobileNavIconClass} aria-hidden>
@@ -576,9 +593,8 @@ const AuthNavbar = () => {
             </li>
             <li className="nav-item d-none d-lg-block">
               <Link
-                className={`nav-link auth-navbar-mobile-link${location.pathname.startsWith('/challenges') ? ' auth-navbar-mobile-link--active' : ''}`}
+                {...navLinkProps(isEventsActive)}
                 to="/challenges"
-                style={{ fontSize: '0.9rem', fontWeight: 500, color: palette.navMuted }}
                 onClick={() => setShowMenu(false)}
               >
                 <span className={mobileNavIconClass} aria-hidden>
