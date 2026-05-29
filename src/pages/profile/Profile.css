@@ -594,6 +594,14 @@
 
 .profile-edit-modal .form-control:focus,.profile-edit-modal .form-select:focus{border-color:#1d79bc;box-shadow:0 0 0 3px #1d79bc24;background:#fff}
 
+.profile-height-inputs{display:flex;gap:10px}
+
+.profile-height-field{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+
+.profile-height-field .form-control{flex:1;min-width:0}
+
+.profile-height-unit{font-size:.8rem;font-weight:600;color:#64748b;flex-shrink:0}
+
 .profile-edit-modal textarea.form-control{min-height:92px;resize:vertical}
 
 .profile-edit-modal .profile-library-btn{border-radius:10px;padding:8px 12px;font-weight:700}

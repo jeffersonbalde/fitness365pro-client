@@ -8,36 +8,8 @@ import { notifySuccess, notifyError } from '../../utils/notifications'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CountryDropdown, RegionDropdown } from 'react-country-region-selector'
 import logoFinal from '../../assets/images/logo_final.png'
+import { feetInchesToCm, validateHeightFeetInches } from '../../utils/height'
 import './Onboarding.css'
-
-const feetInchesToCm = (feet, inches) => {
-  const ft = parseInt(feet, 10) || 0
-  const inc = parseInt(inches, 10) || 0
-  return Math.round((ft * 12 + inc) * 2.54)
-}
-
-const validateHeightFeetInches = (feet, inches) => {
-  if (feet === '' && inches === '') {
-    return 'Height is required'
-  }
-
-  const ft = parseInt(feet, 10)
-  const inc = inches === '' ? 0 : parseInt(inches, 10)
-
-  if (Number.isNaN(ft) || ft < 1 || ft > 9) {
-    return 'Enter a valid height in feet (1–9)'
-  }
-  if (Number.isNaN(inc) || inc < 0 || inc > 11) {
-    return 'Inches must be between 0 and 11'
-  }
-
-  const cm = feetInchesToCm(ft, inc)
-  if (cm < 50 || cm > 300) {
-    return 'Height must be between 1\'8" and 9\'10"'
-  }
-
-  return null
-}
 
 const Onboarding = () => {
   const { client, markOnboardingComplete } = useAuth()

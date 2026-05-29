@@ -19,6 +19,12 @@ import {
   isAcceptableWorkoutImageFile,
   WORKOUT_IMAGE_ACCEPT,
 } from '../../utils/workoutImages'
+import {
+  cmToFeetInches,
+  feetInchesToCm,
+  formatHeightFtIn,
+  validateHeightFeetInches,
+} from '../../utils/height'
 
 const formatLongDate = (value) => {
   if (!value) return 'Not set'
@@ -139,7 +145,8 @@ const Profile = () => {
     last_name: '',
     date_of_birth: '',
     gender: '',
-    height_cm: '',
+    height_feet: '',
+    height_inches: '',
     current_weight_kg: '',
     target_weight_kg: '',
     city: '',
@@ -410,12 +417,14 @@ const Profile = () => {
 
   const openProfileEditModal = () => {
     setProfileEditErrors({})
+    const { feet, inches } = cmToFeetInches(profile?.height_cm)
     setProfileEditForm({
       first_name: profile?.first_name || '',
       last_name: profile?.last_name || '',
       date_of_birth: profile?.date_of_birth ? String(profile.date_of_birth).slice(0, 10) : '',
       gender: profile?.gender || '',
-      height_cm: profile?.height_cm || '',
+      height_feet: feet,
+      height_inches: inches,
       current_weight_kg: profile?.current_weight_kg || '',
       target_weight_kg: profile?.target_weight_kg || '',
       city: profile?.city || '',
@@ -454,6 +463,13 @@ const Profile = () => {
       setProfileEditErrors((prev) => {
         const next = { ...prev }
         delete next[name]
+        return next
+      })
+    }
+    if ((name === 'height_feet' || name === 'height_inches') && profileEditErrors.height) {
+      setProfileEditErrors((prev) => {
+        const next = { ...prev }
+        delete next.height
         return next
       })
     }
@@ -562,6 +578,19 @@ const Profile = () => {
         return
       }
 
+      const hasHeight = profileEditForm.height_feet !== '' || profileEditForm.height_inches !== ''
+      const heightError = validateHeightFeetInches(
+        profileEditForm.height_feet,
+        profileEditForm.height_inches,
+        { required: false },
+      )
+      if (heightError) {
+        setProfileEditErrors((prev) => ({ ...prev, height: heightError }))
+        notifyError(heightError)
+        setSavingProfileEdit(false)
+        return
+      }
+
       const payload = {
         ...profileEditForm,
         first_name: profileEditForm.first_name.trim(),
@@ -570,6 +599,9 @@ const Profile = () => {
         province: profileEditForm.province.trim(),
         country: profileEditForm.country.trim(),
         date_of_birth: profileEditForm.date_of_birth || null,
+        height_cm: hasHeight
+          ? feetInchesToCm(profileEditForm.height_feet, profileEditForm.height_inches)
+          : null,
         workout_preferences: {
           days_per_week: profileEditForm.workout_days_per_week,
           location: profileEditForm.workout_location,
@@ -584,6 +616,9 @@ const Profile = () => {
         experience_others_title: profileEditForm.experience_others_title.trim() || null,
         experience_others: profileEditForm.experience_others || null,
       }
+
+      delete payload.height_feet
+      delete payload.height_inches
 
       if (payload.date_of_birth) {
         const normalizedDob = normalizeDateInput(payload.date_of_birth)
@@ -630,6 +665,10 @@ const Profile = () => {
         const value = apiErrors[key]
         formattedErrors[key] = Array.isArray(value) ? value[0] : value
       })
+      if (formattedErrors.height_cm) {
+        formattedErrors.height = formattedErrors.height_cm
+        delete formattedErrors.height_cm
+      }
       setProfileEditErrors(formattedErrors)
       const firstError = Object.values(formattedErrors)[0]
       notifyError(firstError || error?.response?.data?.message || 'Failed to update profile.')
@@ -1677,7 +1716,7 @@ const Profile = () => {
                     </div>
                     <div className="profile-about-row">
                       <span className="profile-about-label">Height</span>
-                      <span className="profile-about-value">{profile?.height_cm ? `${profile.height_cm} cm` : 'Not set'}</span>
+                      <span className="profile-about-value">{formatHeightFtIn(profile?.height_cm) || 'Not set'}</span>
                     </div>
                     <div className="profile-about-row">
                       <span className="profile-about-label">Current Weight</span>
@@ -2301,8 +2340,42 @@ const Profile = () => {
 
                 <div className="profile-workout-edit-notes profile-edit-section-title">Body Metrics</div>
                 <div>
-                  <label className="form-label">Height (cm)</label>
-                  <input type="number" min="50" max="300" className={`form-control ${profileEditErrors.height_cm ? 'is-invalid' : ''}`} name="height_cm" value={profileEditForm.height_cm} onChange={handleProfileEditChange} />
+                  <label className="form-label">Height</label>
+                  <div className={`profile-height-inputs ${profileEditErrors.height ? 'is-invalid' : ''}`}>
+                    <div className="profile-height-field">
+                      <input
+                        type="number"
+                        min="1"
+                        max="9"
+                        placeholder="5"
+                        inputMode="numeric"
+                        aria-label="Height in feet"
+                        className={`form-control ${profileEditErrors.height ? 'is-invalid' : ''}`}
+                        name="height_feet"
+                        value={profileEditForm.height_feet}
+                        onChange={handleProfileEditChange}
+                      />
+                      <span className="profile-height-unit">ft</span>
+                    </div>
+                    <div className="profile-height-field">
+                      <input
+                        type="number"
+                        min="0"
+                        max="11"
+                        placeholder="10"
+                        inputMode="numeric"
+                        aria-label="Height in inches"
+                        className={`form-control ${profileEditErrors.height ? 'is-invalid' : ''}`}
+                        name="height_inches"
+                        value={profileEditForm.height_inches}
+                        onChange={handleProfileEditChange}
+                      />
+                      <span className="profile-height-unit">in</span>
+                    </div>
+                  </div>
+                  {profileEditErrors.height && (
+                    <div className="invalid-feedback d-block">{profileEditErrors.height}</div>
+                  )}
                 </div>
                 <div>
                   <label className="form-label">Current Weight (kg)</label>
