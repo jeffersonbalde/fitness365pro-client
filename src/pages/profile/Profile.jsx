@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { apiRequest } from '../../utils/api'
+import { setCachedProfilePictureUrl } from '../../utils/profileCache'
 import { resolveMediaUrl } from '../../utils/mediaUrl'
 import { notifyError, notifySuccess } from '../../utils/notifications'
 import { trackEvent } from '../../utils/telemetry'
@@ -112,6 +113,7 @@ const Profile = () => {
   })
   const [myStats, setMyStats] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [secondaryLoading, setSecondaryLoading] = useState(true)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [, setUploadingCover] = useState(false) // setter used in cover upload flow; value not needed in UI
   const [mediaViewerTarget, setMediaViewerTarget] = useState(null)
@@ -241,26 +243,32 @@ const Profile = () => {
   }
 
   useEffect(() => {
-    const fetchProfileAndTimeline = async () => {
+    if (!client) return undefined
+
+    let cancelled = false
+
+    const fetchProfileCore = async () => {
+      setLoading(true)
+      setSecondaryLoading(true)
       try {
         const [
           profileResponse,
           workoutsResponse,
           socialStatsResponse,
           goalsResponse,
-          suggestedResponse,
-          statsResponse,
         ] = await Promise.all([
           apiRequest('/v1/profile', { method: 'GET' }),
           apiRequest('/v1/workouts?limit=20', { method: 'GET' }),
           apiRequest('/v1/social/stats', { method: 'GET' }),
           apiRequest('/v1/onboarding/goals', { method: 'GET' }),
-          apiRequest('/v1/social/suggested-buddies?per_page=6', { method: 'GET' }),
-          apiRequest('/v1/workouts/stats', { method: 'GET' }),
         ])
 
+        if (cancelled) return
+
         if (profileResponse.data.success) {
-          setProfile(profileResponse.data.data.profile)
+          const profileData = profileResponse.data.data.profile
+          setProfile(profileData)
+          setCachedProfilePictureUrl(client.id, profileData?.profile_picture_url || '')
           const goals = profileResponse.data.data.goals || []
           setProfileGoals(goals)
           setSelectedGoalIds(goals.map((goal) => goal.id))
@@ -268,29 +276,59 @@ const Profile = () => {
         if (goalsResponse.data.success) {
           setGoalOptions(goalsResponse.data.data.goals || [])
         }
-
         if (workoutsResponse.data.success) {
           setTimeline(workoutsResponse.data.data.workouts || [])
         }
         if (socialStatsResponse.data.success) {
           setSocialStats(socialStatsResponse.data.data || socialStats)
         }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to fetch profile/timeline:', error)
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    const fetchProfileSecondary = async () => {
+      setSuggestedBuddiesLoading(true)
+      try {
+        const [suggestedResponse, statsResponse] = await Promise.all([
+          apiRequest('/v1/social/suggested-buddies?per_page=6', { method: 'GET' }),
+          apiRequest('/v1/workouts/stats', { method: 'GET' }),
+        ])
+
+        if (cancelled) return
+
         if (suggestedResponse.data.success) {
           setSuggestedBuddies(suggestedResponse.data.data?.results || [])
         }
-
         if (statsResponse?.data?.success) {
           setMyStats(statsResponse.data.data || null)
         }
       } catch (error) {
-        console.error('Failed to fetch profile/timeline:', error)
+        if (!cancelled) {
+          console.error('Failed to fetch profile stats/suggestions:', error)
+        }
       } finally {
-        setLoading(false)
+        if (!cancelled) {
+          setSecondaryLoading(false)
+          setSuggestedBuddiesLoading(false)
+        }
       }
     }
 
-    if (client) {
-      fetchProfileAndTimeline()
+    fetchProfileCore().then(() => {
+      if (!cancelled) {
+        fetchProfileSecondary()
+      }
+    })
+
+    return () => {
+      cancelled = true
     }
   }, [client])
 
@@ -1514,7 +1552,7 @@ const Profile = () => {
                   </div>
                 </div>
 
-                {myStats && (
+                {(secondaryLoading || myStats) && (
                   <>
                     <div className="profile-section-card profile-side-card">
                       <div className="profile-side-head profile-side-head--stacked">
@@ -1525,28 +1563,36 @@ const Profile = () => {
                       <div className="profile-my-stats-grid">
                         <div className="profile-my-stat-card">
                           <div className="profile-my-stat-label">Distance Covered</div>
-                          <div className="profile-my-stat-value">{myStats.total_distance_km ?? 0} km</div>
+                          <div className="profile-my-stat-value">
+                            {secondaryLoading && !myStats ? '…' : `${myStats?.total_distance_km ?? 0} km`}
+                          </div>
                         </div>
                         <div className="profile-my-stat-card">
                           <div className="profile-my-stat-label">Avg Performance</div>
                           <div className="profile-my-stat-value">
-                            {formatPaceMinPerKm(myStats.avg_pace_min_per_km)}
+                            {secondaryLoading && !myStats
+                              ? '…'
+                              : formatPaceMinPerKm(myStats?.avg_pace_min_per_km)}
                           </div>
                         </div>
                         <div className="profile-my-stat-card">
                           <div className="profile-my-stat-label">Total Sessions</div>
-                          <div className="profile-my-stat-value">{myStats.total_runs ?? 0}</div>
+                          <div className="profile-my-stat-value">
+                            {secondaryLoading && !myStats ? '…' : (myStats?.total_runs ?? 0)}
+                          </div>
                         </div>
                         <div className="profile-my-stat-card">
                           <div className="profile-my-stat-label">Active Streak</div>
-                          <div className="profile-my-stat-value">{myStats.current_streak ?? 0} days</div>
+                          <div className="profile-my-stat-value">
+                            {secondaryLoading && !myStats ? '…' : `${myStats?.current_streak ?? 0} days`}
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     <div className="profile-section-card profile-side-card profile-side-card--compact">
                       <ProfileEarnedEventBadges
-                        items={myStats.event_badges}
+                        items={myStats?.event_badges || []}
                         resolveMediaUrl={resolveMediaUrl}
                         ownerName={displayName}
                         clientId={client?.id || ''}
@@ -1556,7 +1602,7 @@ const Profile = () => {
                     <div className="profile-section-card profile-side-card profile-side-card--compact">
                       <ProfileJoinedEventsSection
                         variant="sidebar"
-                        items={myStats.joined_challenge_events}
+                        items={myStats?.joined_challenge_events || []}
                         resolveMediaUrl={resolveMediaUrl}
                         emptyHint="Join a challenge under Events — distance progress appears here."
                         onOpenChallengeJournal={openChallengeJournalFromProfile}

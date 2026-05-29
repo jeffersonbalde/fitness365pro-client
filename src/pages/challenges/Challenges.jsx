@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiRequest, ensureAccessToken } from '../../utils/api'
 import { notifyError } from '../../utils/notifications'
-import { toEvent, deriveChallengeProgressCtas, isJoinedChallengeGoalCompleted } from './eventCatalog'
+import { toEvent, deriveChallengeProgressCtas } from './eventCatalog'
 import ChallengeProgressHistoryModal from '../../components/profile/ChallengeProgressHistoryModal.jsx'
 import { AppLoadingState } from '../../components/AppLoadingState.jsx'
 import './Challenges.css'
@@ -23,18 +23,23 @@ const Challenges = () => {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
   const [challenges, setChallenges] = useState([])
-  const [statsJoinedChallengeRows, setStatsJoinedChallengeRows] = useState([])
   const [historyModal, setHistoryModal] = useState(null)
 
-  const completedChallengeIdsFromStats = useMemo(() => {
+  const completedChallengeIdsFromEvents = useMemo(() => {
     const ids = new Set()
-    for (const row of statsJoinedChallengeRows) {
-      if (isJoinedChallengeGoalCompleted(row)) {
-        ids.add(String(row.event_id))
+    for (const challenge of challenges) {
+      const event = toEvent(challenge)
+      if (!event.isRegistered) continue
+      const ctas = deriveChallengeProgressCtas({
+        challengeProgress: event.challengeProgress,
+        endsAtIso: event.endsAtIso,
+      })
+      if (ctas.goalMet) {
+        ids.add(String(event.id))
       }
     }
     return ids
-  }, [statsJoinedChallengeRows])
+  }, [challenges])
 
   const loadChallenges = useCallback(async (options = {}) => {
     const { silent } = options
@@ -44,17 +49,8 @@ const Challenges = () => {
 
     try {
       await ensureAccessToken()
-      const [eventsRes, statsRes] = await Promise.all([
-        apiRequest('/v1/cms/events', { method: 'GET' }),
-        apiRequest('/v1/workouts/stats', { method: 'GET' }),
-      ])
+      const eventsRes = await apiRequest('/v1/cms/events', { method: 'GET' })
       if (seq !== fetchSeq.current) return
-
-      if (statsRes?.data?.success && Array.isArray(statsRes.data?.data?.joined_challenge_events)) {
-        setStatsJoinedChallengeRows(statsRes.data.data.joined_challenge_events)
-      } else {
-        setStatsJoinedChallengeRows([])
-      }
 
       if (eventsRes.data?.success) {
         setChallenges(eventsRes.data?.data?.events || [])
@@ -72,7 +68,6 @@ const Challenges = () => {
       const msg = error?.response?.data?.message || 'Unable to reach the server right now.'
       if (!silent) {
         setChallenges([])
-        setStatsJoinedChallengeRows([])
         setLoadError(msg)
         notifyError(msg)
       }
@@ -130,7 +125,7 @@ const Challenges = () => {
                       })
                     : null
                   const ctas =
-                    baseCtas && completedChallengeIdsFromStats.has(String(event.id))
+                    baseCtas && completedChallengeIdsFromEvents.has(String(event.id))
                       ? {
                           ...baseCtas,
                           goalMet: true,

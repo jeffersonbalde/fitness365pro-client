@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { apiRequest, ensureAccessToken } from '../../utils/api'
+import { apiRequest } from '../../utils/api'
 import {
   deriveRegistrationPhase,
   deriveChallengeProgressCtas,
   formatCountdownTo,
-  isJoinedChallengeGoalCompleted,
   toEvent,
 } from './eventCatalog'
 import ChallengeProgressHistoryModal from '../../components/profile/ChallengeProgressHistoryModal.jsx'
@@ -34,7 +33,6 @@ const EventDetails = () => {
   const location = useLocation()
   const [loading, setLoading] = useState(true)
   const [eventData, setEventData] = useState(null)
-  const [joinedStatsRow, setJoinedStatsRow] = useState(null)
   const [nowMs, setNowMs] = useState(Date.now())
   const [challengeHistoryModal, setChallengeHistoryModal] = useState(null)
   const loadEventPayload = useCallback(async (options = {}) => {
@@ -44,26 +42,10 @@ const EventDetails = () => {
     try {
       const response = await apiRequest(`/v1/cms/events/${eventId}`, { method: 'GET' })
 
-      let statsRowForEvent = null
-      try {
-        await ensureAccessToken()
-        const statsRes = await apiRequest('/v1/workouts/stats', { method: 'GET' })
-        if (statsRes?.data?.success && Array.isArray(statsRes.data?.data?.joined_challenge_events)) {
-          statsRowForEvent =
-            statsRes.data.data.joined_challenge_events.find(
-              (r) => String(r.event_id) === String(eventId),
-            ) ?? null
-        }
-      } catch {
-        statsRowForEvent = null
-      }
-
       if (response.data?.success && response.data?.data?.event) {
         setEventData(response.data.data.event)
-        setJoinedStatsRow(statsRowForEvent)
       } else {
         setEventData(null)
-        setJoinedStatsRow(null)
       }
     } catch (error) {
       if (error?.response?.data?.event_status === 'completed') {
@@ -73,7 +55,6 @@ const EventDetails = () => {
       console.error('Failed to load event details:', error)
       if (!silent) {
         setEventData(null)
-        setJoinedStatsRow(null)
       }
     } finally {
       if (!silent) setLoading(false)
@@ -103,20 +84,12 @@ const EventDetails = () => {
   const event = useMemo(() => (eventData ? toEvent(eventData) : null), [eventData])
   const progressCtas = useMemo(() => {
     if (!event?.isRegistered) return null
-    const base = deriveChallengeProgressCtas({
+    return deriveChallengeProgressCtas({
       challengeProgress: event.challengeProgress,
       endsAtIso: event.endsAtIso,
       nowMs,
     })
-    if (joinedStatsRow && isJoinedChallengeGoalCompleted(joinedStatsRow, nowMs)) {
-      return {
-        ...base,
-        goalMet: true,
-        primary: { kind: 'history', label: 'View progress' },
-      }
-    }
-    return base
-  }, [event, joinedStatsRow, nowMs])
+  }, [event, nowMs])
 
   const runChallengeCta = useCallback(
     (kind) => {

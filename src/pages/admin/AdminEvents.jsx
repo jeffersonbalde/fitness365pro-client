@@ -2,12 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { adminApiRequest } from '../../utils/adminApi'
 import { notifyError, notifySuccess } from '../../utils/notifications'
+import { resolveMediaUrl } from '../../utils/mediaUrl'
 import AdminModuleLayout from './AdminModuleLayout'
 import AdminCmsTabs from './AdminCmsTabs'
 import './AdminEvents.css'
-
-const API_BASE_URL = import.meta.env.VITE_LARAVEL_API || 'http://localhost:8000/api'
-const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '')
 
 const DEFAULT_HOW_IT_WORKS = [
   'Register before the deadline to secure your slot.',
@@ -294,13 +292,6 @@ const getLocationSummary = (item) => {
   if (item.location_type === 'onsite') return item.venue || item.location || 'Onsite'
   if (item.location_type === 'global') return item.location || 'Global'
   return item.location || 'Online'
-}
-
-const resolveMediaUrl = (url) => {
-  if (!url) return ''
-  if (url.startsWith('http://') || url.startsWith('https://')) return url
-  if (url.startsWith('/')) return `${API_ORIGIN}${url}`
-  return `${API_ORIGIN}/${url}`
 }
 
 const toUtcIsoOrNull = (dateTimeLocalValue) => {

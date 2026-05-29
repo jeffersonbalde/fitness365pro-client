@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useNotifications } from '../contexts/NotificationsContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { apiRequest } from '../utils/api'
+import { getCachedProfilePictureUrl, setCachedProfilePictureUrl } from '../utils/profileCache'
 import NotificationsPanel from './NotificationsPanel'
 import logoFinal from '../assets/images/logo_final.png'
 import './AuthNavbar.css'
@@ -241,10 +242,18 @@ const AuthNavbar = () => {
         setAvatarUrl('')
         return
       }
+
+      const cachedUrl = getCachedProfilePictureUrl(client.id)
+      if (cachedUrl) {
+        setAvatarUrl(cachedUrl)
+        return
+      }
+
       try {
         const profileRes = await apiRequest('/v1/profile', { method: 'GET' })
         if (profileRes?.data?.success) {
           const profilePictureUrl = profileRes?.data?.data?.profile?.profile_picture_url || ''
+          setCachedProfilePictureUrl(client.id, profilePictureUrl)
           setAvatarUrl(profilePictureUrl)
         }
       } catch {
