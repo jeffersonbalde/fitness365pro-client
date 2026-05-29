@@ -10,6 +10,7 @@ const AUTH_CLIENT_KEY = 'auth_client'
 
 const TOKEN_REFRESH_BUFFER_MS = 60 * 1000
 const DEFAULT_ACCESS_SECONDS = 3600
+const DEFAULT_REQUEST_TIMEOUT_MS = 25000
 
 const looksLikeHtmlResponse = (raw) => {
   const trimmed = (raw || '').trim().toLowerCase()
@@ -252,8 +253,16 @@ export const apiRequest = async (endpoint, options = {}) => {
       : JSON.stringify(options.body)
   }
 
+  const timeoutMs = Number(options.timeoutMs) > 0
+    ? Number(options.timeoutMs)
+    : DEFAULT_REQUEST_TIMEOUT_MS
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+  config.signal = controller.signal
+
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
+    clearTimeout(timeoutId)
 
     const raw = await response.text()
     const data = raw
@@ -320,17 +329,22 @@ export const apiRequest = async (endpoint, options = {}) => {
 
     return { data, status: response.status }
   } catch (error) {
+    clearTimeout(timeoutId)
+
     if (error.response) {
       throw error
     }
 
+    const timedOut = error?.name === 'AbortError'
     throw {
       response: {
         data: {
-          message: 'Network error. Please check your connection.',
+          message: timedOut
+            ? 'The request took too long. Please check your connection and try again.'
+            : 'Network error. Please check your connection.',
           errors: {},
         },
-        status: 0,
+        status: timedOut ? 408 : 0,
       },
     }
   }

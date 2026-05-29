@@ -441,6 +441,36 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  const markOnboardingComplete = () => {
+    setOnboardingCompleted(true)
+    setClient((previous) => (
+      previous
+        ? {
+            ...previous,
+            onboarding_completed: true,
+            onboarding_step: 6,
+          }
+        : previous
+    ))
+
+    try {
+      const storedClient = localStorage.getItem('auth_client')
+      if (storedClient) {
+        const parsed = JSON.parse(storedClient)
+        localStorage.setItem(
+          'auth_client',
+          JSON.stringify({
+            ...parsed,
+            onboarding_completed: true,
+            onboarding_step: 6,
+          }),
+        )
+      }
+    } catch {
+      // ignore parse / quota errors
+    }
+  }
+
   const value = {
     client,
     isAuthenticated,
@@ -456,6 +486,7 @@ export const AuthProvider = ({ children }) => {
     resetPassword,
     logout,
     checkAuth,
+    markOnboardingComplete,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -11,7 +11,7 @@ import logoFinal from '../../assets/images/logo_final.png'
 import './Onboarding.css'
 
 const Onboarding = () => {
-  const { client, checkAuth } = useAuth()
+  const { client, markOnboardingComplete } = useAuth()
   const { theme, setTheme, toggleTheme, isDark } = useTheme()
   const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(1)
@@ -48,6 +48,8 @@ const Onboarding = () => {
   const [bmi, setBmi] = useState(null)
   const [bmiCategory, setBmiCategory] = useState(null)
   const [bodyType, setBodyType] = useState(null)
+  const saveQueueRef = useRef(Promise.resolve())
+  const pendingSaveCountRef = useRef(0)
 
   // High-level goal groups for Screen 1
   const primaryGoalGroups = [
@@ -101,6 +103,10 @@ const Onboarding = () => {
           if (data.onboarding_completed) {
             navigate('/dashboard')
             return
+          }
+
+          if (Array.isArray(data.goals) && data.goals.length > 0) {
+            setSelectedGoals(data.goals.map((goal) => goal.id))
           }
         }
       } catch (error) {
@@ -205,6 +211,49 @@ const Onboarding = () => {
     }
   }
 
+  const applyStepResponse = (step, profile) => {
+    if (step === 5 && profile) {
+      if (profile.bmi !== null && profile.bmi !== undefined) {
+        setBmi(profile.bmi)
+      }
+      if (profile.bmi_category) {
+        setBmiCategory(profile.bmi_category)
+      }
+      if (profile.body_type) {
+        setBodyType(profile.body_type)
+      }
+    }
+  }
+
+  const beginTrackedSave = () => {
+    pendingSaveCountRef.current += 1
+    setSaving(true)
+  }
+
+  const endTrackedSave = () => {
+    pendingSaveCountRef.current = Math.max(0, pendingSaveCountRef.current - 1)
+    if (pendingSaveCountRef.current === 0) {
+      setSaving(false)
+    }
+  }
+
+  const persistOnboardingStep = (stepToCall, payload) => {
+    beginTrackedSave()
+
+    const saveTask = saveQueueRef.current
+      .catch(() => undefined)
+      .then(() => apiRequest(`/v1/onboarding/step/${stepToCall}`, {
+        method: 'POST',
+        body: payload,
+      }))
+      .finally(() => {
+        endTrackedSave()
+      })
+
+    saveQueueRef.current = saveTask.catch(() => undefined)
+    return saveTask
+  }
+
   const handleNext = async () => {
     setErrors({})
     setGeneralError(null)
@@ -299,77 +348,64 @@ const Onboarding = () => {
       }
     }
 
-    setSaving(true)
-    try {
-      let payload = {}
-      
-      if (currentStep === 1) {
-        payload = { goals: selectedGoals }
-      } else if (currentStep === 2) {
-        payload = {
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          gender: formData.gender,
-          date_of_birth: formData.date_of_birth,
-          height_cm: formData.height_cm,
-          current_weight_kg: formData.current_weight_kg,
-          target_weight_kg: formData.target_weight_kg,
-        }
-      } else if (currentStep === 3) {
-        payload = {
-          city: formData.city,
-          province: formData.province,
-          country: formData.country,
-        }
-      } else if (currentStep === 4) {
-        payload = {
-          workout_days_per_week: formData.workout_days_per_week,
-          workout_location: formData.workout_location,
-          training_focus: formData.training_focus,
-          food_preference: formData.food_preference,
-        }
-      } else if (currentStep === 5) {
-        payload = {
-          experience_running: formData.experience_running,
-          experience_gym: formData.experience_gym,
-          experience_biking: formData.experience_biking,
-          experience_others_title: formData.experience_others_title,
-          experience_others: formData.experience_others,
-        }
+    const stepToCall = currentStep
+    let payload = {}
+
+    if (currentStep === 1) {
+      payload = { goals: selectedGoals }
+    } else if (currentStep === 2) {
+      payload = {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        gender: formData.gender,
+        date_of_birth: formData.date_of_birth,
+        height_cm: formData.height_cm,
+        current_weight_kg: formData.current_weight_kg,
+        target_weight_kg: formData.target_weight_kg,
       }
+    } else if (currentStep === 3) {
+      payload = {
+        city: formData.city,
+        province: formData.province,
+        country: formData.country,
+      }
+    } else if (currentStep === 4) {
+      payload = {
+        workout_days_per_week: formData.workout_days_per_week,
+        workout_location: formData.workout_location,
+        training_focus: formData.training_focus,
+        food_preference: formData.food_preference,
+      }
+    } else if (currentStep === 5) {
+      payload = {
+        experience_running: formData.experience_running,
+        experience_gym: formData.experience_gym,
+        experience_biking: formData.experience_biking,
+        experience_others_title: formData.experience_others_title,
+        experience_others: formData.experience_others,
+      }
+    }
 
-      const stepToCall = currentStep
+    const nextStep = currentStep === 5 ? 6 : currentStep + 1
+    setCurrentStep(nextStep)
+    if (currentStep === 4) {
+      setSelectedGoals([])
+    }
 
-      const response = await apiRequest(`/v1/onboarding/step/${stepToCall}`, {
-        method: 'POST',
-        body: payload,
-      })
+    try {
+      const response = await persistOnboardingStep(stepToCall, payload)
 
-        if (response.data.success) {
+      if (response.data.success) {
         setErrors({})
         setGeneralError(null)
-        if (currentStep === 5) {
-          setCurrentStep(6)
-          const profile = response.data.data?.profile
-          if (profile?.bmi !== null && profile?.bmi !== undefined) {
-            setBmi(profile.bmi)
-          }
-          if (profile?.bmi_category) {
-            setBmiCategory(profile.bmi_category)
-          }
-          if (profile?.body_type) {
-            setBodyType(profile.body_type)
-          }
-        } else {
-          setCurrentStep(prev => prev + 1)
-          if (currentStep === 4) {
-            setSelectedGoals([])
-          }
-        }
+        applyStepResponse(stepToCall, response.data.data?.profile)
       }
     } catch (error) {
       console.error('Failed to save step:', error)
-      
+
+      const expectedNextStep = stepToCall === 5 ? 6 : stepToCall + 1
+      setCurrentStep((activeStep) => (activeStep === expectedNextStep ? stepToCall : activeStep))
+
       const errorData = error?.response?.data || {}
       const apiErrors = errorData.errors || {}
       const errorMessage = errorData.message || 'Failed to save. Please try again.'
@@ -381,7 +417,7 @@ const Onboarding = () => {
       })
 
       setErrors(formattedErrors)
-      
+
       if (Object.keys(formattedErrors).length === 0) {
         setGeneralError(errorMessage)
         notifyError(errorMessage)
@@ -389,8 +425,6 @@ const Onboarding = () => {
         const firstError = Object.values(formattedErrors)[0]
         notifyError(firstError)
       }
-    } finally {
-      setSaving(false)
     }
   }
 
@@ -606,6 +640,9 @@ const Onboarding = () => {
               <div className="onboarding-stepper-mobile-simple">
                 <div className="onboarding-stepper-mobile-text">
                   Step {currentStep} of {steps.length} · {currentStepData?.name}
+                  {saving && currentStep < 6 && (
+                    <span className="onboarding-stepper-save-hint"> · Saving...</span>
+                  )}
                 </div>
                 <div className="onboarding-stepper-mobile-bar">
                   <div
@@ -1742,7 +1779,7 @@ const Onboarding = () => {
                   className="onboarding-btn onboarding-btn-secondary"
                   type="button"
                   onClick={handleBack}
-                  disabled={saving}
+                  disabled={saving && currentStep === 6}
                   style={{
                     flex: 1,
                     padding: '10px 14px',
@@ -1787,30 +1824,32 @@ const Onboarding = () => {
                     await handleNext()
                     return
                   }
-                  // Step 6: finalize onboarding, refresh session, go to app
+                  // Step 6: finalize onboarding and go to app
                   try {
-                    setSaving(true)
+                    beginTrackedSave()
+                    await saveQueueRef.current.catch(() => undefined)
                     await apiRequest('/v1/onboarding/step/6', { method: 'POST', body: {} })
+                    markOnboardingComplete()
                     notifySuccess('Onboarding completed!')
-                    await checkAuth()
+                    navigate('/dashboard', { replace: true })
                   } catch (err) {
                     console.error('Failed to complete onboarding', err)
-                    notifyError('Failed to complete onboarding. Please try again.')
+                    notifyError(err?.response?.data?.message || 'Failed to complete onboarding. Please try again.')
                   } finally {
-                    setSaving(false)
+                    endTrackedSave()
                   }
                 }}
-                disabled={saving}
+                disabled={saving && currentStep === 6}
                 style={{
                   flex: 1,
                   padding: '10px 14px',
                   borderRadius: '8px',
                   border: 'none',
-                  backgroundColor: saving ? '#9CA3AF' : 'var(--brand-primary)',
+                  backgroundColor: (saving && currentStep === 6) ? '#9CA3AF' : 'var(--brand-primary)',
                   color: '#FFFFFF',
                   fontSize: '14px',
                   fontWeight: 600,
-                  cursor: saving ? 'not-allowed' : 'pointer',
+                  cursor: (saving && currentStep === 6) ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s ease',
                   display: 'flex',
                   alignItems: 'center',
@@ -1819,8 +1858,8 @@ const Onboarding = () => {
                 }}
               >
                 <span>
-                  {saving
-                    ? 'Saving...'
+                  {saving && currentStep === 6
+                    ? 'Finishing...'
                     : currentStep === 5
                     ? 'Complete'
                     : currentStep === 6

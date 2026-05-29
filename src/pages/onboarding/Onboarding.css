@@ -148,6 +148,11 @@
     color: var(--app-text-muted);
     margin-bottom: 6px;
   }
+
+  .onboarding-stepper-save-hint {
+    color: var(--brand-primary);
+    font-weight: 500;
+  }
   .onboarding-stepper-mobile-bar {
     width: 100%;
     max-width: 360px;
