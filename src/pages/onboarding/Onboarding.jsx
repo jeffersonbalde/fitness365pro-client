@@ -10,6 +10,35 @@ import { CountryDropdown, RegionDropdown } from 'react-country-region-selector'
 import logoFinal from '../../assets/images/logo_final.png'
 import './Onboarding.css'
 
+const feetInchesToCm = (feet, inches) => {
+  const ft = parseInt(feet, 10) || 0
+  const inc = parseInt(inches, 10) || 0
+  return Math.round((ft * 12 + inc) * 2.54)
+}
+
+const validateHeightFeetInches = (feet, inches) => {
+  if (feet === '' && inches === '') {
+    return 'Height is required'
+  }
+
+  const ft = parseInt(feet, 10)
+  const inc = inches === '' ? 0 : parseInt(inches, 10)
+
+  if (Number.isNaN(ft) || ft < 1 || ft > 9) {
+    return 'Enter a valid height in feet (1–9)'
+  }
+  if (Number.isNaN(inc) || inc < 0 || inc > 11) {
+    return 'Inches must be between 0 and 11'
+  }
+
+  const cm = feetInchesToCm(ft, inc)
+  if (cm < 50 || cm > 300) {
+    return 'Height must be between 1\'8" and 9\'10"'
+  }
+
+  return null
+}
+
 const Onboarding = () => {
   const { client, markOnboardingComplete } = useAuth()
   const { theme, setTheme, toggleTheme, isDark } = useTheme()
@@ -27,7 +56,8 @@ const Onboarding = () => {
     last_name: '',
     gender: '',
     date_of_birth: '',
-    height_cm: '',
+    height_feet: '',
+    height_inches: '',
     current_weight_kg: '',
     target_weight_kg: '',
     workout_days_per_week: '',
@@ -206,6 +236,13 @@ const Onboarding = () => {
         return newErrors
       })
     }
+    if ((name === 'height_feet' || name === 'height_inches') && errors.height) {
+      setErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors.height
+        return newErrors
+      })
+    }
     if (generalError) {
       setGeneralError(null)
     }
@@ -288,8 +325,9 @@ const Onboarding = () => {
         setErrors({ date_of_birth: 'Date of birth is required' })
         return
       }
-      if (!formData.height_cm) {
-        setErrors({ height_cm: 'Height is required' })
+      const heightError = validateHeightFeetInches(formData.height_feet, formData.height_inches)
+      if (heightError) {
+        setErrors({ height: heightError })
         return
       }
       if (!formData.current_weight_kg) {
@@ -359,7 +397,7 @@ const Onboarding = () => {
         last_name: formData.last_name,
         gender: formData.gender,
         date_of_birth: formData.date_of_birth,
-        height_cm: formData.height_cm,
+        height_cm: feetInchesToCm(formData.height_feet, formData.height_inches),
         current_weight_kg: formData.current_weight_kg,
         target_weight_kg: formData.target_weight_kg,
       }
@@ -415,6 +453,11 @@ const Onboarding = () => {
         const errorArray = Array.isArray(apiErrors[key]) ? apiErrors[key] : [apiErrors[key]]
         formattedErrors[key] = errorArray[0]
       })
+
+      if (formattedErrors.height_cm) {
+        formattedErrors.height = formattedErrors.height_cm
+        delete formattedErrors.height_cm
+      }
 
       setErrors(formattedErrors)
 
@@ -1014,27 +1057,55 @@ const Onboarding = () => {
                     </div>
                     <div className="col-md-6">
                       <label className="form-label" style={{ fontSize: '13px', fontWeight: 500, color: 'var(--app-text-muted)', marginBottom: '6px' }}>
-                        Height (cm) *
+                        Height *
                       </label>
-                      <input
-                        type="number"
-                        className={`form-control ${errors.height_cm ? 'is-invalid' : ''}`}
-                        name="height_cm"
-                        value={formData.height_cm}
-                        onChange={handleChange}
-                        min="50"
-                        max="300"
-                        placeholder="e.g. 175"
-                        style={{
-                          borderRadius: '8px',
-                          border: errors.height_cm ? '1px solid #DC2626' : '1px solid var(--app-border)',
-                          padding: '10px 14px',
-                          fontSize: '14px'
-                        }}
-                      />
-                      {errors.height_cm && (
+                      <div className={`onboarding-height-inputs ${errors.height ? 'is-invalid' : ''}`}>
+                        <div className="onboarding-height-field">
+                          <input
+                            type="number"
+                            className={`form-control ${errors.height ? 'is-invalid' : ''}`}
+                            name="height_feet"
+                            value={formData.height_feet}
+                            onChange={handleChange}
+                            min="1"
+                            max="9"
+                            placeholder="5"
+                            inputMode="numeric"
+                            aria-label="Height in feet"
+                            style={{
+                              borderRadius: '8px',
+                              border: errors.height ? '1px solid #DC2626' : '1px solid var(--app-border)',
+                              padding: '10px 14px',
+                              fontSize: '14px'
+                            }}
+                          />
+                          <span className="onboarding-height-unit">ft</span>
+                        </div>
+                        <div className="onboarding-height-field">
+                          <input
+                            type="number"
+                            className={`form-control ${errors.height ? 'is-invalid' : ''}`}
+                            name="height_inches"
+                            value={formData.height_inches}
+                            onChange={handleChange}
+                            min="0"
+                            max="11"
+                            placeholder="10"
+                            inputMode="numeric"
+                            aria-label="Height in inches"
+                            style={{
+                              borderRadius: '8px',
+                              border: errors.height ? '1px solid #DC2626' : '1px solid var(--app-border)',
+                              padding: '10px 14px',
+                              fontSize: '14px'
+                            }}
+                          />
+                          <span className="onboarding-height-unit">in</span>
+                        </div>
+                      </div>
+                      {errors.height && (
                         <div className="invalid-feedback d-block" style={{ fontSize: '13px', color: '#DC2626', marginTop: '6px' }}>
-                          {errors.height_cm}
+                          {errors.height}
                         </div>
                       )}
                     </div>

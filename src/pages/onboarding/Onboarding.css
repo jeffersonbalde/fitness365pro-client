@@ -60,6 +60,30 @@
   opacity: 1;
 }
 
+.onboarding-height-inputs {
+  display: flex;
+  gap: 10px;
+}
+
+.onboarding-height-field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.onboarding-height-field .form-control {
+  flex: 1;
+  min-width: 0;
+}
+
+.onboarding-height-unit {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--app-text-muted);
+  flex-shrink: 0;
+}
+
 @media (max-width: 768px) {
   .onboarding-location-select select {
     font-size: 13px !important;
