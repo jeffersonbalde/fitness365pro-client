@@ -23,6 +23,7 @@ import {
   MAX_COVER_IMAGE_BYTES,
   validateProfileImageFile,
   getProfileUploadErrorMessage,
+  resolveUploadFilename,
 } from '../../utils/workoutImages'
 import {
   cmToFeetInches,
@@ -923,7 +924,7 @@ const Profile = () => {
     }
 
     const formData = new FormData()
-    formData.append('profile_picture', file)
+    formData.append('profile_picture', file, resolveUploadFilename(file, 'profile-photo'))
     setUploadingAvatar(true)
     try {
       const response = await apiRequest('/v1/profile/picture', {
@@ -956,7 +957,7 @@ const Profile = () => {
     }
 
     const formData = new FormData()
-    formData.append('cover_photo', file)
+    formData.append('cover_photo', file, resolveUploadFilename(file, 'cover-photo'))
     setUploadingCover(true)
     try {
       const response = await apiRequest('/v1/profile/cover-photo', {
