@@ -12,6 +12,7 @@ import { AppLoadingState } from '../../components/AppLoadingState.jsx'
 import './Profile.css'
 import ChallengeProgressHistoryModal from '../../components/profile/ChallengeProgressHistoryModal.jsx'
 import ProfileEarnedEventBadges from '../../components/profile/ProfileEarnedEventBadges.jsx'
+import ProfileEarnedEventTrophies from '../../components/profile/ProfileEarnedEventTrophies.jsx'
 import { ProfileJoinedEventsSection } from '../../components/profile/JoinedChallengeEvents.jsx'
 import { TimelineLinkedEventCallout } from '../../components/profile/TimelineLinkedEventCallout.jsx'
 import { isJoinedChallengeGoalCompleted } from '../challenges/eventCatalog'
@@ -1661,6 +1662,13 @@ const Profile = () => {
                         resolveMediaUrl={resolveMediaUrl}
                         ownerName={displayName}
                         clientId={client?.id || ''}
+                      />
+                    </div>
+
+                    <div className="profile-section-card profile-side-card profile-side-card--compact">
+                      <ProfileEarnedEventTrophies
+                        items={myStats?.event_trophies || []}
+                        resolveMediaUrl={resolveMediaUrl}
                       />
                     </div>
 

@@ -7,6 +7,7 @@ import AppModalTransition from '../../components/AppModalTransition.jsx'
 import { AppLoadingState } from '../../components/AppLoadingState.jsx'
 import ChallengeProgressHistoryModal from '../../components/profile/ChallengeProgressHistoryModal.jsx'
 import ProfileEarnedEventBadges from '../../components/profile/ProfileEarnedEventBadges.jsx'
+import ProfileEarnedEventTrophies from '../../components/profile/ProfileEarnedEventTrophies.jsx'
 import './Profile.css'
 import { ProfileJoinedEventsSection } from '../../components/profile/JoinedChallengeEvents.jsx'
 import { TimelineLinkedEventCallout } from '../../components/profile/TimelineLinkedEventCallout.jsx'
@@ -588,6 +589,13 @@ const UserProfile = () => {
                         resolveMediaUrl={resolveMediaUrl}
                         ownerName={displayName}
                         clientId={clientId || ''}
+                      />
+
+                      <div className="profile-side-divider" />
+
+                      <ProfileEarnedEventTrophies
+                        items={workoutStats.event_trophies}
+                        resolveMediaUrl={resolveMediaUrl}
                       />
 
                       <div className="profile-side-divider" />

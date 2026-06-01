@@ -395,12 +395,12 @@ const Workout = () => {
                                 </option>
                               ))}
                             </select>
-                            <div id="linked_challenge_help" className="small text-muted mt-1 workout-help-muted">
+                            <div id="linked_challenge_help" className="small mt-1 workout-help-muted">
                               Distance is sent for review before it counts toward the event.
                             </div>
                           </>
                         ) : prefilledEvent && linkedEventId === prefilledEvent.id ? (
-                          <div id="linked_challenge_help" className="small text-muted mt-1 workout-help-muted">
+                          <div id="linked_challenge_help" className="small mt-1 workout-help-muted">
                             Your event is pre-selected from the Events page.
                           </div>
                         ) : null}

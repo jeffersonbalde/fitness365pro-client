@@ -32,18 +32,21 @@ const defaultForm = {
   description: '',
   image_url: '',
   badges: [],
+  trophies: [],
+  trophy_award_mode: 'all_finishers',
+  trophy_top_n: 10,
   location_type: 'online',
   location: '',
   venue: '',
   category: 'running',
   running_preset_distances: ['5k'],
   running_custom_distances: [],
-  running_preset_packages: ['medal'],
+  running_preset_packages: [],
   running_custom_packages: [],
   running_shirt_sizes: [],
   gym_preset_programs: ['strength'],
   gym_custom_programs: [],
-  gym_preset_packages: ['day_pass'],
+  gym_preset_packages: [],
   gym_custom_packages: [],
   gym_shirt_sizes: [],
   registration_starts_at: '',
@@ -169,11 +172,10 @@ const runningDefaultsFromItem = (item) => {
       }
     })
     const useDistFallback = presetsD.length === 0 && customsD.length === 0
-    const usePkgFallback = presetsP.length === 0 && customsP.length === 0
     return {
       running_preset_distances: useDistFallback ? ['5k'] : presetsD,
       running_custom_distances: customsD,
-      running_preset_packages: usePkgFallback ? ['medal'] : presetsP,
+      running_preset_packages: presetsP,
       running_custom_packages: customsP,
       running_shirt_sizes: Array.isArray(rd.shirt_sizes) ? rd.shirt_sizes.map(String) : [],
     }
@@ -190,7 +192,7 @@ const runningDefaultsFromItem = (item) => {
   if (['medal', 'medal_shirt', 'medal_shirt_kit'].includes(pkg)) presetsP.push(pkg)
   else if (pkg === 'other' && rd.package_custom) {
     customsP.push({ label: String(rd.package_custom), includes_shirt: Boolean(rd.package_includes_shirt) })
-  } else presetsP.push('medal')
+  }
   return {
     running_preset_distances: presetsD,
     running_custom_distances: customsD,
@@ -257,11 +259,10 @@ const gymDefaultsFromItem = (item) => {
       }
     })
     const useProgFallback = presetsP.length === 0 && customsP.length === 0
-    const usePkgFallback = presetsPk.length === 0 && customsPk.length === 0
     return {
       gym_preset_programs: useProgFallback ? ['strength'] : presetsP,
       gym_custom_programs: customsP,
-      gym_preset_packages: usePkgFallback ? ['day_pass'] : presetsPk,
+      gym_preset_packages: presetsPk,
       gym_custom_packages: customsPk,
       gym_shirt_sizes: Array.isArray(gd.shirt_sizes) ? gd.shirt_sizes.map(String) : [],
     }
@@ -278,7 +279,7 @@ const gymDefaultsFromItem = (item) => {
   if (['day_pass', 'monthly_access', 'classes_bundle', 'premium_apparel', 'full_kit'].includes(pkg)) presetsPkg.push(pkg)
   else if (pkg === 'other' && gd.package_custom) {
     customsPkg.push({ label: String(gd.package_custom), includes_shirt: Boolean(gd.package_includes_shirt) })
-  } else presetsPkg.push('day_pass')
+  }
   return {
     gym_preset_programs: presetsProg,
     gym_custom_programs: customsProg,
@@ -392,10 +393,7 @@ const validateAdminEventForm = (form) => {
   if (form.category === 'running') {
     const distCount = (form.running_preset_distances || []).length
       + (form.running_custom_distances || []).filter((l) => String(l || '').trim()).length
-    const pkgCount = (form.running_preset_packages || []).length
-      + (form.running_custom_packages || []).filter((r) => (r?.label || '').trim()).length
     if (distCount === 0) setErr('running_distances', 'At least one distance required.')
-    if (pkgCount === 0) setErr('running_packages', 'At least one package required.')
     if (formRunningAnyShirtPackage(form) && (!form.running_shirt_sizes || form.running_shirt_sizes.length === 0)) {
       setErr('running_shirt_sizes', 'Shirt size selection required.')
     }
@@ -404,10 +402,7 @@ const validateAdminEventForm = (form) => {
   if (form.category === 'gym') {
     const progCount = (form.gym_preset_programs || []).length
       + (form.gym_custom_programs || []).filter((l) => String(l || '').trim()).length
-    const pkgCount = (form.gym_preset_packages || []).length
-      + (form.gym_custom_packages || []).filter((r) => (r?.label || '').trim()).length
     if (progCount === 0) setErr('gym_programs', 'At least one program required.')
-    if (pkgCount === 0) setErr('gym_packages', 'At least one package required.')
     if (formGymAnyShirtPackage(form) && (!form.gym_shirt_sizes || form.gym_shirt_sizes.length === 0)) {
       setErr('gym_shirt_sizes', 'Apparel size required.')
     }
@@ -416,6 +411,12 @@ const validateAdminEventForm = (form) => {
   ;(form.badges || []).forEach((b, i) => {
     if (String(b?.image_url || '').trim() && !String(b?.title || '').trim()) {
       setErr(`badge_title_${i}`, 'Required.')
+    }
+  })
+
+  ;(form.trophies || []).forEach((t, i) => {
+    if (String(t?.image_url || '').trim() && !String(t?.title || '').trim()) {
+      setErr(`trophy_title_${i}`, 'Required.')
     }
   })
 
@@ -428,6 +429,7 @@ const AdminEvents = () => {
   const [saving, setSaving] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [uploadingBadgeImage, setUploadingBadgeImage] = useState(false)
+  const [uploadingTrophyImage, setUploadingTrophyImage] = useState(false)
   const [editingId, setEditingId] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isFormClosing, setIsFormClosing] = useState(false)
@@ -495,6 +497,15 @@ const AdminEvents = () => {
         title: (b.title || '').trim() || null,
         image_url: String(b.image_url).trim(),
       })),
+    trophies: (form.trophies || [])
+      .filter((t) => t.image_url && String(t.image_url).trim())
+      .slice(0, 12)
+      .map((t) => ({
+        title: (t.title || '').trim() || null,
+        image_url: String(t.image_url).trim(),
+      })),
+    trophy_award_mode: form.trophy_award_mode || 'all_finishers',
+    trophy_top_n: form.trophy_award_mode === 'top_n' ? Math.min(100, Math.max(1, Number(form.trophy_top_n) || 10)) : 10,
     running_details: buildRunningDetailsPayload(form),
     gym_details: buildGymDetailsPayload(form),
     how_it_works: (form.how_it_works || []).map((s) => String(s || '').trim()).filter(Boolean),
@@ -532,8 +543,11 @@ const AdminEvents = () => {
         Object.entries(apiErrors).forEach(([k, v]) => {
           const msg = Array.isArray(v) ? v[0] : String(v)
           const badgeMatch = /^badges\.(\d+)\.title$/.exec(k)
+          const trophyMatch = /^trophies\.(\d+)\.title$/.exec(k)
           if (badgeMatch) {
             mapped[`badge_title_${badgeMatch[1]}`] = msg
+          } else if (trophyMatch) {
+            mapped[`trophy_title_${trophyMatch[1]}`] = msg
           } else {
             mapped[k] = msg
           }
@@ -574,6 +588,16 @@ const AdminEvents = () => {
             image_url: String(b.image_url),
           }))
         : [],
+      trophies: Array.isArray(item.trophies)
+        ? item.trophies
+          .filter((t) => t?.image_url)
+          .map((t) => ({
+            title: t.title ? String(t.title) : '',
+            image_url: String(t.image_url),
+          }))
+        : [],
+      trophy_award_mode: item.trophy_award_mode === 'top_n' ? 'top_n' : 'all_finishers',
+      trophy_top_n: item.trophy_top_n != null ? Number(item.trophy_top_n) : 10,
       how_it_works: bulletListFromEventItem(item, 'how_it_works', DEFAULT_HOW_IT_WORKS),
       participant_rules: bulletListFromEventItem(item, 'participant_rules', DEFAULT_PARTICIPANT_RULES),
       ...(item.category === 'running' ? runningDefaultsFromItem(item) : {}),
@@ -598,6 +622,7 @@ const AdminEvents = () => {
       setEditingId('')
       setUploadingImage(false)
       setUploadingBadgeImage(false)
+      setUploadingTrophyImage(false)
       setFieldErrors({})
       setForm(defaultForm)
     }, 220)
@@ -742,6 +767,65 @@ const AdminEvents = () => {
       if (!next[index]) return prev
       next[index] = { ...next[index], title }
       return { ...prev, badges: next }
+    })
+  }
+
+  const uploadTrophyImage = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if ((form.trophies || []).length >= 12) {
+      notifyError('You can add at most 12 trophy images per event.')
+      event.target.value = ''
+      return
+    }
+
+    const payload = new FormData()
+    payload.append('image', file)
+    setUploadingTrophyImage(true)
+    try {
+      const res = await adminApiRequest('/v1/admin/events/upload-trophy-image', {
+        method: 'POST',
+        body: payload,
+      })
+      const imageUrl = res.data?.data?.image_url || ''
+      if (imageUrl) {
+        setForm((prev) => ({
+          ...prev,
+          trophies: [...(prev.trophies || []), { title: '', image_url: imageUrl }],
+        }))
+        notifySuccess('Trophy image added. Optionally set a label for each trophy.')
+      } else {
+        notifyError('Upload succeeded but no image URL was returned.')
+      }
+    } catch (error) {
+      notifyError(error?.response?.data?.message || 'Failed to upload trophy image.')
+    } finally {
+      setUploadingTrophyImage(false)
+      event.target.value = ''
+    }
+  }
+
+  const removeTrophyRow = (index) => {
+    setFieldErrors((prev) => {
+      const next = { ...prev }
+      Object.keys(next).forEach((k) => {
+        if (k.startsWith('trophy_title_')) delete next[k]
+      })
+      return next
+    })
+    setForm((prev) => ({
+      ...prev,
+      trophies: (prev.trophies || []).filter((_, i) => i !== index),
+    }))
+  }
+
+  const updateTrophyTitle = (index, title) => {
+    dismissError(`trophy_title_${index}`)
+    setForm((prev) => {
+      const next = [...(prev.trophies || [])]
+      if (!next[index]) return prev
+      next[index] = { ...next[index], title }
+      return { ...prev, trophies: next }
     })
   }
 
@@ -976,6 +1060,7 @@ const AdminEvents = () => {
                   <div className="admin-events-form-full mt-3">
                     <span className="admin-events-subfield-label d-block mb-2">
                       Registration packages offered
+                      <small className="text-muted d-block fw-normal">Optional — leave unchecked if this event has no packages.</small>
                     </span>
                     {fieldErrors.running_packages && (
                       <div className="admin-events-field-error mb-2">{fieldErrors.running_packages}</div>
@@ -1203,6 +1288,7 @@ const AdminEvents = () => {
                   <div className="admin-events-form-full mt-3">
                     <span className="admin-events-subfield-label d-block mb-2">
                       Passes &amp; packages offered
+                      <small className="text-muted d-block fw-normal">Optional — leave unchecked if this event has no packages.</small>
                     </span>
                     {fieldErrors.gym_packages && (
                       <div className="admin-events-field-error mb-2">{fieldErrors.gym_packages}</div>
@@ -1613,6 +1699,105 @@ const AdminEvents = () => {
                   </label>
                   {(form.badges || []).length >= 12 && (
                     <small className="text-muted">Maximum of 12 badge images reached.</small>
+                  )}
+                </div>
+              </label>
+
+              <label className="admin-events-form-full">
+                <span>Event trophy images</span>
+                <small className="text-muted d-block mb-2">
+                  Optional. Shown on member profiles based on the award rule below.
+                </small>
+                <div className="admin-events-trophy-award-row mb-3">
+                  <label htmlFor="admin-event-trophy-award-mode" className="admin-events-inline-label">
+                    <span>Trophy award rule</span>
+                    <select
+                      id="admin-event-trophy-award-mode"
+                      className={`form-select form-select-sm ${fieldErrors.trophy_award_mode ? 'is-invalid' : ''}`}
+                      value={form.trophy_award_mode || 'all_finishers'}
+                      onChange={(e) => {
+                        dismissError('trophy_award_mode')
+                        dismissError('trophy_top_n')
+                        setForm((prev) => ({ ...prev, trophy_award_mode: e.target.value }))
+                      }}
+                    >
+                      <option value="all_finishers">All who finish (100% progress)</option>
+                      <option value="top_n">Top finishers only (leaderboard rank)</option>
+                    </select>
+                  </label>
+                  {form.trophy_award_mode === 'top_n' && (
+                    <label htmlFor="admin-event-trophy-top-n" className="admin-events-inline-label">
+                      <span>Top N</span>
+                      <input
+                        id="admin-event-trophy-top-n"
+                        type="number"
+                        min={1}
+                        max={100}
+                        className={`form-control form-control-sm ${fieldErrors.trophy_top_n ? 'is-invalid' : ''}`}
+                        value={form.trophy_top_n ?? 10}
+                        onChange={(e) => {
+                          dismissError('trophy_top_n')
+                          setForm((prev) => ({ ...prev, trophy_top_n: e.target.value }))
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+                {fieldErrors.trophy_top_n && (
+                  <div className="admin-events-field-error mb-2">{fieldErrors.trophy_top_n}</div>
+                )}
+                <div className="admin-events-badge-list">
+                  {(form.trophies || []).map((row, index) => (
+                    <div key={`trophy-${row.image_url}-${index}`} className="admin-events-badge-row">
+                      <div className="admin-events-badge-thumb admin-events-trophy-thumb">
+                        {row.image_url ? (
+                          <img src={resolveMediaUrl(row.image_url)} alt="" />
+                        ) : (
+                          <div className="admin-events-image-placeholder">No image</div>
+                        )}
+                      </div>
+                      <div className="admin-events-badge-fields w-100">
+                        <input
+                          id={`admin-event-trophy-title-${index}`}
+                          className={`form-control form-control-sm ${fieldErrors[`trophy_title_${index}`] ? 'is-invalid' : ''}`}
+                          placeholder="Trophy label"
+                          value={row.title}
+                          onChange={(e) => updateTrophyTitle(index, e.target.value)}
+                          aria-invalid={Boolean(fieldErrors[`trophy_title_${index}`])}
+                          aria-describedby={fieldErrors[`trophy_title_${index}`] ? `admin-event-trophy-title-${index}-err` : undefined}
+                        />
+                        {fieldErrors[`trophy_title_${index}`] && (
+                          <div
+                            id={`admin-event-trophy-title-${index}-err`}
+                            className="admin-events-field-error"
+                          >
+                            {fieldErrors[`trophy_title_${index}`]}
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          className="btn btn-sm admin-events-btn-danger-outline"
+                          onClick={() => removeTrophyRow(index)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="admin-events-upload-actions mt-2">
+                  <label className="btn btn-sm btn-outline-brand mb-0">
+                    {uploadingTrophyImage ? 'Uploading...' : 'Add trophy image'}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                      hidden
+                      onChange={uploadTrophyImage}
+                      disabled={uploadingTrophyImage || (form.trophies || []).length >= 12}
+                    />
+                  </label>
+                  {(form.trophies || []).length >= 12 && (
+                    <small className="text-muted">Maximum of 12 trophy images reached.</small>
                   )}
                 </div>
               </label>

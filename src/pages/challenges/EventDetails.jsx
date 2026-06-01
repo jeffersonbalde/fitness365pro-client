@@ -20,6 +20,33 @@ const resolveMediaUrl = (url) => {
   return `${API_ORIGIN}/${url}`
 }
 
+const EventRewardGallery = ({ items, variant = 'badge', resolveMediaUrl }) => {
+  if (!Array.isArray(items) || items.length === 0) return null
+
+  return (
+    <div className={`event-reward-gallery event-reward-gallery--${variant}`} role="list">
+      {items.map((item, idx) => (
+        <figure
+          key={`${variant}-${item.title}-${idx}`}
+          className="event-reward-card"
+          role="listitem"
+          title={item.title}
+        >
+          <div className="event-reward-card-media">
+            <img
+              src={resolveMediaUrl(item.imageUrl)}
+              alt={item.title}
+              className="event-reward-card-img"
+              loading="lazy"
+            />
+          </div>
+          <figcaption className="event-reward-card-caption">{item.title}</figcaption>
+        </figure>
+      ))}
+    </div>
+  )
+}
+
 const formatParticipantJoined = (iso) => {
   if (!iso) return ''
   const d = new Date(iso)
@@ -320,10 +347,12 @@ const EventDetails = () => {
                       <span>Distances offered</span>
                       <strong>{runningChoices.distancesOffered.map((d) => d.label).join(' · ')}</strong>
                     </div>
-                    <div className="event-modern-row">
-                      <span>Packages offered</span>
-                      <strong>{runningChoices.packagesOffered.map((p) => p.label).join(' · ')}</strong>
-                    </div>
+                    {runningChoices.packagesOffered.length > 0 && (
+                      <div className="event-modern-row">
+                        <span>Packages offered</span>
+                        <strong>{runningChoices.packagesOffered.map((p) => p.label).join(' · ')}</strong>
+                      </div>
+                    )}
                     {runningChoices.needsShirtSize && (
                       <div className="event-modern-row">
                         <span>Shirt sizes offered</span>
@@ -338,10 +367,12 @@ const EventDetails = () => {
                       <span>Programs offered</span>
                       <strong>{gymChoices.programsOffered.map((d) => d.label).join(' · ')}</strong>
                     </div>
-                    <div className="event-modern-row">
-                      <span>Packages offered</span>
-                      <strong>{gymChoices.packagesOffered.map((p) => p.label).join(' · ')}</strong>
-                    </div>
+                    {gymChoices.packagesOffered.length > 0 && (
+                      <div className="event-modern-row">
+                        <span>Packages offered</span>
+                        <strong>{gymChoices.packagesOffered.map((p) => p.label).join(' · ')}</strong>
+                      </div>
+                    )}
                     {gymChoices.needsShirtSize && (
                       <div className="event-modern-row">
                         <span>Apparel sizes offered</span>
@@ -354,27 +385,27 @@ const EventDetails = () => {
 
               <section className="event-modern-section">
                 <h2 className="event-modern-section-title">Badges</h2>
-                <div className="event-badge-gallery">
-                  {event.badgeItems.length === 0 ? (
-                    <div className="text-muted small">No badge artwork has been published for this event yet.</div>
-                  ) : (
-                    event.badgeItems.map((badge, idx) => (
-                      <div
-                        key={`${badge.title}-${idx}`}
-                        className="event-badge-card"
-                        title={`Badge reward: ${badge.title}`}
-                      >
-                        <img
-                          src={resolveMediaUrl(badge.imageUrl)}
-                          alt={badge.title}
-                          className="event-badge-image"
-                        />
-                        <div className="event-badge-title">{badge.title}</div>
-                      </div>
-                    ))
-                  )}
-                </div>
+                {event.badgeItems.length === 0 ? (
+                  <div className="text-muted small">No badge artwork has been published for this event yet.</div>
+                ) : (
+                  <EventRewardGallery
+                    items={event.badgeItems}
+                    variant="badge"
+                    resolveMediaUrl={resolveMediaUrl}
+                  />
+                )}
               </section>
+
+              {(event.trophyItems?.length ?? 0) > 0 && (
+                <section className="event-modern-section">
+                  <h2 className="event-modern-section-title">Trophies</h2>
+                  <EventRewardGallery
+                    items={event.trophyItems}
+                    variant="trophy"
+                    resolveMediaUrl={resolveMediaUrl}
+                  />
+                </section>
+              )}
 
               <section className="event-modern-section">
                 <h2 className="event-modern-section-title">How this event works</h2>

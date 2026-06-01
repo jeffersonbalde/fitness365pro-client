@@ -426,6 +426,71 @@
   gap: 10px;
 }
 
+.event-reward-gallery {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 18px;
+  list-style: none;
+  padding: 0;
+}
+
+.event-reward-card {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 108px;
+}
+
+.event-reward-card-media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid #dbe3ee;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.event-reward-gallery--trophy .event-reward-card-media {
+  border-color: rgba(59, 130, 246, 0.35);
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.02) 100%);
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.1);
+}
+
+.event-reward-card-img {
+  width: auto;
+  height: auto;
+  max-width: 72px;
+  max-height: 72px;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+}
+
+.event-reward-gallery--trophy .event-reward-card-img {
+  max-width: 68px;
+  max-height: 84px;
+}
+
+.event-reward-card-caption {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.event-reward-gallery--trophy .event-reward-card-caption {
+  color: #2563eb;
+}
+
 .event-badge-card {
   border: 1px solid #dbe3ee;
   border-radius: 999px;
@@ -1031,6 +1096,25 @@ a.event-modern-person:hover {
   background: var(--app-surface);
 }
 
+[data-theme='dark'] .event-reward-card-media {
+  border-color: var(--app-border, #334155);
+  background: var(--app-surface, #1e293b);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme='dark'] .event-reward-gallery--trophy .event-reward-card-media {
+  border-color: rgba(59, 130, 246, 0.45);
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.18) 0%, rgba(59, 130, 246, 0.06) 100%);
+}
+
+[data-theme='dark'] .event-reward-card-caption {
+  color: #f3f7ff;
+}
+
+[data-theme='dark'] .event-reward-gallery--trophy .event-reward-card-caption {
+  color: #93c5fd;
+}
+
 [data-theme='dark'] .event-badge-title {
   color: #f3f7ff;
 }
@@ -1606,14 +1690,36 @@ a.event-modern-person:hover {
     margin-bottom: 12px;
   }
 
+  .event-modern-hero {
+    background: #020617;
+  }
+
   .event-modern-hero-image {
-    min-height: 320px;
-    height: 44vh;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    object-fit: contain;
+    object-position: center top;
   }
 
   .event-modern-hero > .challenge-cover-fallback {
-    min-height: 280px;
-    height: 44vh;
+    min-height: 180px;
+    height: 180px;
+  }
+
+  .event-reward-card {
+    max-width: 96px;
+  }
+
+  .event-reward-card-img {
+    max-width: 64px;
+    max-height: 64px;
+  }
+
+  .event-reward-gallery--trophy .event-reward-card-img {
+    max-width: 60px;
+    max-height: 76px;
   }
 
   .event-modern-row {

@@ -422,10 +422,32 @@ const normalizeGymDetailsRaw = (gd) => {
   }
 }
 
+/**
+ * @param {unknown} raw
+ * @param {string} fallbackLabelPrefix
+ * @returns {{ title: string, imageUrl: string }[]}
+ */
+export const parseEventRewardItems = (raw, fallbackLabelPrefix = 'Reward') => {
+  if (!Array.isArray(raw) || raw.length === 0) return []
+
+  return raw
+    .map((b, idx) => {
+      if (!b) return null
+      const url = String(b.image_url || b.imageUrl || '').trim()
+      if (!url) return null
+      const rawTitle = String(b.title || b.label || '').trim()
+      return {
+        title: rawTitle || `${fallbackLabelPrefix} ${idx + 1}`,
+        imageUrl: url,
+      }
+    })
+    .filter(Boolean)
+}
+
 export const buildRunningChoices = (community) => {
   if (community?.category !== 'running') return null
   const raw = normalizeRunningDetailsRaw(community?.running_details)
-  if (raw.distances.length === 0 || raw.packages.length === 0) return null
+  if (raw.distances.length === 0) return null
 
   const distancesOffered = raw.distances
     .map((d, idx) => {
@@ -491,7 +513,7 @@ export const buildRunningChoices = (community) => {
     needsShirtSize,
     offeredSummaryLine: [
       distancesOffered.map((d) => d.label).join(' · '),
-      packagesOffered.map((p) => p.label).join(' · '),
+      packagesOffered.length > 0 ? packagesOffered.map((p) => p.label).join(' · ') : '',
     ]
       .filter(Boolean)
       .join(' — '),
@@ -507,7 +529,7 @@ const formatRunningSummary = (community) => {
 export const buildGymChoices = (community) => {
   if (community?.category !== 'gym') return null
   const raw = normalizeGymDetailsRaw(community?.gym_details)
-  if (raw.programs.length === 0 || raw.packages.length === 0) return null
+  if (raw.programs.length === 0) return null
 
   const programsOffered = raw.programs
     .map((row, idx) => {
@@ -573,7 +595,7 @@ export const buildGymChoices = (community) => {
     needsShirtSize,
     offeredSummaryLine: [
       programsOffered.map((d) => d.label).join(' · '),
-      packagesOffered.map((p) => p.label).join(' · '),
+      packagesOffered.length > 0 ? packagesOffered.map((p) => p.label).join(' · ') : '',
     ]
       .filter(Boolean)
       .join(' — '),
@@ -604,23 +626,10 @@ export const toEvent = (community) => {
       ? (venue || community?.location || 'Onsite Event')
       : (community?.location || (locationType === 'global' ? 'Global Event' : 'Online Event'))
 
-    let badgeItems = []
-    if (Array.isArray(community.badges)) {
-      if (community.badges.length > 0) {
-        badgeItems = community.badges
-          .map((b, idx) => {
-            if (!b) return null
-            const url = String(b.image_url || b.imageUrl || '').trim()
-            if (!url) return null
-            const rawTitle = String(b.title || b.label || '').trim()
-            return {
-              title: rawTitle || `Badge ${idx + 1}`,
-              imageUrl: url,
-            }
-          })
-          .filter(Boolean)
-      }
-    } else {
+    let badgeItems = parseEventRewardItems(community.badges, 'Badge')
+    const trophyItems = parseEventRewardItems(community.trophies, 'Trophy')
+
+    if (!Array.isArray(community.badges)) {
       const fallbackHash = hashString(community?.id || title)
       const badgeGroups = Object.keys(BADGE_LIBRARY)
       badgeItems = [
@@ -665,6 +674,7 @@ export const toEvent = (community) => {
       feeLabel: feeType === 'free' ? 'Free' : formatMoneyPhp(feeValue),
       rewards: ['Digital certificate', 'Event recognition'],
       badgeItems,
+      trophyItems,
       runningChoices: buildRunningChoices(community),
       runningSummary: formatRunningSummary(community),
       gymChoices: buildGymChoices(community),
@@ -762,6 +772,7 @@ export const toEvent = (community) => {
     feeLabel: formatMoneyPhp(template.feePhp),
     rewards: template.rewards,
     badgeItems,
+    trophyItems: [],
     runningChoices: null,
     runningSummary: null,
     gymChoices: null,

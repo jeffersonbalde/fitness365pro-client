@@ -107,7 +107,169 @@ const decodeGymProgram = (optionValue) => {
 
 const decodeGymPackage = (optionValue) => decodeRunningPackage(optionValue)
 
-const buildSteps = () => ['participant', 'fulfillment', 'summary']
+const buildSteps = (includePackageStep) =>
+  includePackageStep ? ['participant', 'fulfillment', 'summary'] : ['participant', 'summary']
+
+function RegistrationDeliveryFields({
+  deliveryAreas,
+  fulfillmentErrors,
+  clearFulfillmentFieldError,
+  deliveryAreaKey,
+  setDeliveryAreaKey,
+  shipSameAsRegistration,
+  setShipSameAsRegistration,
+  deliveryAddressLine,
+  setDeliveryAddressLine,
+  deliveryProvince,
+  setDeliveryProvince,
+  deliveryCity,
+  setDeliveryCity,
+  deliveryBarangay,
+  setDeliveryBarangay,
+  deliveryNotes,
+  setDeliveryNotes,
+  wrapperClassName = '',
+}) {
+  return (
+    <div className={wrapperClassName}>
+      <label htmlFor="reg-delivery-zone" className="form-label registration-form-field-label">
+        Kit / finisher delivery option <span className="text-danger" aria-hidden>*</span>
+      </label>
+      <p className="form-text registration-form-help mb-1">
+        Pickup or courier — fee shown beside each option.
+      </p>
+      <select
+        id="reg-delivery-zone"
+        aria-invalid={!!fulfillmentErrors.delivery_zone}
+        className={`form-select form-control-registration mb-2${fulfillmentErrors.delivery_zone ? ' is-invalid' : ''}`}
+        value={deliveryAreaKey}
+        onChange={(e) => {
+          clearFulfillmentFieldError('delivery_zone')
+          setDeliveryAreaKey(e.target.value)
+        }}
+      >
+        <option value="">Select option…</option>
+        {deliveryAreas.map((row) => (
+          <option key={row.key} value={row.key}>
+            {row.label}
+            {' '}
+            (
+            {formatPhp(row.fee_php)}
+            )
+          </option>
+        ))}
+      </select>
+      {fulfillmentErrors.delivery_zone && (
+        <div className="invalid-feedback d-block">{fulfillmentErrors.delivery_zone}</div>
+      )}
+      <div className="form-check mb-3">
+        <input
+          id="ship-same"
+          type="checkbox"
+          className="form-check-input"
+          checked={shipSameAsRegistration}
+          onChange={(e) => {
+            setShipSameAsRegistration(e.target.checked)
+            clearFulfillmentFieldError('delivery_address_line')
+            clearFulfillmentFieldError('delivery_province')
+            clearFulfillmentFieldError('delivery_city')
+            clearFulfillmentFieldError('delivery_barangay')
+          }}
+        />
+        <label className="form-check-label" htmlFor="ship-same">
+          Ship to the same address as my registration profile
+        </label>
+      </div>
+      {!shipSameAsRegistration && (
+        <div className="row g-3 mb-2">
+          <div className="col-12">
+            <label htmlFor="reg-del-street" className="form-label registration-form-field-label">
+              Courier street / building <span className="text-danger" aria-hidden>*</span>
+            </label>
+            <input
+              id="reg-del-street"
+              autoComplete="off"
+              className={`form-control form-control-registration${fulfillmentErrors.delivery_address_line ? ' is-invalid' : ''}`}
+              value={deliveryAddressLine}
+              onChange={(e) => {
+                clearFulfillmentFieldError('delivery_address_line')
+                setDeliveryAddressLine(e.target.value)
+              }}
+            />
+            {fulfillmentErrors.delivery_address_line && (
+              <div className="invalid-feedback d-block">{fulfillmentErrors.delivery_address_line}</div>
+            )}
+          </div>
+          <div className="col-md-4">
+            <label htmlFor="reg-del-prov" className="form-label registration-form-field-label">
+              Courier province <span className="text-danger" aria-hidden>*</span>
+            </label>
+            <input
+              id="reg-del-prov"
+              autoComplete="off"
+              className={`form-control form-control-registration${fulfillmentErrors.delivery_province ? ' is-invalid' : ''}`}
+              value={deliveryProvince}
+              onChange={(e) => {
+                clearFulfillmentFieldError('delivery_province')
+                setDeliveryProvince(e.target.value)
+              }}
+            />
+            {fulfillmentErrors.delivery_province && (
+              <div className="invalid-feedback d-block">{fulfillmentErrors.delivery_province}</div>
+            )}
+          </div>
+          <div className="col-md-4">
+            <label htmlFor="reg-del-city" className="form-label registration-form-field-label">
+              Courier city <span className="text-danger" aria-hidden>*</span>
+            </label>
+            <input
+              id="reg-del-city"
+              autoComplete="off"
+              className={`form-control form-control-registration${fulfillmentErrors.delivery_city ? ' is-invalid' : ''}`}
+              value={deliveryCity}
+              onChange={(e) => {
+                clearFulfillmentFieldError('delivery_city')
+                setDeliveryCity(e.target.value)
+              }}
+            />
+            {fulfillmentErrors.delivery_city && (
+              <div className="invalid-feedback d-block">{fulfillmentErrors.delivery_city}</div>
+            )}
+          </div>
+          <div className="col-md-4">
+            <label htmlFor="reg-del-brgy" className="form-label registration-form-field-label">
+              Courier barangay <span className="text-danger" aria-hidden>*</span>
+            </label>
+            <input
+              id="reg-del-brgy"
+              autoComplete="off"
+              className={`form-control form-control-registration${fulfillmentErrors.delivery_barangay ? ' is-invalid' : ''}`}
+              value={deliveryBarangay}
+              onChange={(e) => {
+                clearFulfillmentFieldError('delivery_barangay')
+                setDeliveryBarangay(e.target.value)
+              }}
+            />
+            {fulfillmentErrors.delivery_barangay && (
+              <div className="invalid-feedback d-block">{fulfillmentErrors.delivery_barangay}</div>
+            )}
+          </div>
+        </div>
+      )}
+      <label htmlFor="reg-del-notes" className="form-label registration-form-field-label">
+        Logistics notes (optional)
+      </label>
+      <p className="form-text registration-form-help mb-1">Gate code, hours, or delivery notes.</p>
+      <textarea
+        id="reg-del-notes"
+        className="form-control form-control-registration"
+        rows={2}
+        value={deliveryNotes}
+        onChange={(e) => setDeliveryNotes(e.target.value)}
+      />
+    </div>
+  )
+}
 
 const paymayaCheckoutStorageKey = (id) => `f365paymaya_checkout:${id}`
 
@@ -171,14 +333,24 @@ const EventRegistrationFlow = () => {
 
   const feePhp = Number(eventPayload?.fee || 0)
 
-  const needsKitSelections = useMemo(() => {
+  const needsPackageSelections = useMemo(() => {
     const cat = eventPayload?.category
-    if (cat === 'running' && runningChoices) return true
-    if (cat === 'gym' && gymChoices) return true
+    if (cat === 'running' && runningChoices) {
+      return (runningChoices.packagesOffered?.length ?? 0) > 0
+    }
+    if (cat === 'gym' && gymChoices) {
+      return (gymChoices.packagesOffered?.length ?? 0) > 0
+    }
     return false
   }, [eventPayload?.category, runningChoices, gymChoices])
 
-  const steps = useMemo(() => buildSteps(), [])
+  const steps = useMemo(() => buildSteps(needsPackageSelections), [needsPackageSelections])
+
+  useEffect(() => {
+    if (stepIndex >= steps.length) {
+      setStepIndex(Math.max(0, steps.length - 1))
+    }
+  }, [steps.length, stepIndex])
 
   const deliveryAreas = useMemo(
     () => normalizeDeliveryAreas(event?.deliveryAreas || registrationState?.delivery_areas_catalog),
@@ -482,7 +654,7 @@ const EventRegistrationFlow = () => {
 
   const submitRunningSelection = async () => {
     const d = decodeRunningDistance(distanceValue)
-    const p = decodeRunningPackage(packageValue)
+    const p = needsPackageSelections ? decodeRunningPackage(packageValue) : decodeRunningPackage('')
 
     await apiRequest(`/v1/cms/events/${eventId}/running-selection`, {
       method: 'PUT',
@@ -499,7 +671,7 @@ const EventRegistrationFlow = () => {
 
   const submitGymSelection = async () => {
     const prog = decodeGymProgram(programValue)
-    const pkg = decodeGymPackage(gymPackageValue)
+    const pkg = needsPackageSelections ? decodeGymPackage(gymPackageValue) : decodeGymPackage('')
 
     await apiRequest(`/v1/cms/events/${eventId}/gym-selection`, {
       method: 'PUT',
@@ -547,11 +719,19 @@ const EventRegistrationFlow = () => {
         setParticipantForm(sanitized)
 
         await saveParticipantPayload(sanitized)
+
+        if (!needsPackageSelections) {
+          if (eventPayload?.category === 'running' && runningChoices) {
+            await submitRunningSelection()
+          } else if (eventPayload?.category === 'gym' && gymChoices) {
+            await submitGymSelection()
+          }
+        }
       }
 
       if (step === 'fulfillment') {
         const fe = validateFulfillmentDelivery({
-          needsKitSelections,
+          needsPackageSelections,
           category: eventPayload?.category,
           distanceValue,
           packageValue,
@@ -576,9 +756,9 @@ const EventRegistrationFlow = () => {
         setFulfillmentErrors({})
 
         const fulfillmentTasks = [saveDeliveryPayload()]
-        if (needsKitSelections && eventPayload?.category === 'running') {
+        if (eventPayload?.category === 'running' && runningChoices) {
           fulfillmentTasks.unshift(submitRunningSelection())
-        } else if (needsKitSelections && eventPayload?.category === 'gym') {
+        } else if (eventPayload?.category === 'gym' && gymChoices) {
           fulfillmentTasks.unshift(submitGymSelection())
         }
         await Promise.all(fulfillmentTasks)
@@ -802,9 +982,11 @@ const EventRegistrationFlow = () => {
       const dist =
         `${String(r.distance_key || '').toUpperCase()}${r.distance_label ? ` — ${r.distance_label}` : ''}`
       rows.push(['Race distance', dist])
-      const pkg =
-        `${String(r.package_key || '').replace(/_/g, ' ')}${r.package_label ? ` — ${r.package_label}` : ''}`
-      rows.push(['Package', pkg])
+      if (String(r.package_key || '').trim()) {
+        const pkg =
+          `${String(r.package_key || '').replace(/_/g, ' ')}${r.package_label ? ` — ${r.package_label}` : ''}`
+        rows.push(['Package', pkg])
+      }
       if (r.shirt_size) rows.push(['Shirt size', String(r.shirt_size)])
     }
     if (registrationState?.gym_selection) {
@@ -813,10 +995,12 @@ const EventRegistrationFlow = () => {
         'Program',
         `${String(r.program_key || '')}${r.program_label ? ` — ${r.program_label}` : ''}`,
       ])
-      rows.push([
-        'Package',
-        `${String(r.package_key || '').replace(/_/g, ' ')}${r.package_label ? ` — ${r.package_label}` : ''}`,
-      ])
+      if (String(r.package_key || '').trim()) {
+        rows.push([
+          'Package',
+          `${String(r.package_key || '').replace(/_/g, ' ')}${r.package_label ? ` — ${r.package_label}` : ''}`,
+        ])
+      }
       if (r.shirt_size) rows.push(['Apparel size', String(r.shirt_size)])
     }
     const d = registrationState?.registration?.delivery_details
@@ -883,6 +1067,32 @@ const EventRegistrationFlow = () => {
   )
 
   const paymentSummaryFulfillmentRows = fulfillmentSummaryRows()
+  const summaryFulfillmentHeading = needsPackageSelections ? 'Package & delivery' : 'Event choices'
+  const summaryFulfillmentAria = needsPackageSelections
+    ? 'Package and delivery'
+    : 'Event choices'
+  const showFulfillmentSummaryPanel =
+    needsPackageSelections || paymentSummaryFulfillmentRows.length > 0
+
+  const deliveryFieldProps = {
+    deliveryAreas,
+    fulfillmentErrors,
+    clearFulfillmentFieldError,
+    deliveryAreaKey,
+    setDeliveryAreaKey,
+    shipSameAsRegistration,
+    setShipSameAsRegistration,
+    deliveryAddressLine,
+    setDeliveryAddressLine,
+    deliveryProvince,
+    setDeliveryProvince,
+    deliveryCity,
+    setDeliveryCity,
+    deliveryBarangay,
+    setDeliveryBarangay,
+    deliveryNotes,
+    setDeliveryNotes,
+  }
 
   return (
     <div className="challenges-page registration-wizard" style={{ minHeight: '100vh' }}>
@@ -1171,23 +1381,18 @@ const EventRegistrationFlow = () => {
                   )}
                 </div>
               </div>
+
             </div>
           )}
 
-          {currentStepKey === 'fulfillment' && (
+          {currentStepKey === 'fulfillment' && needsPackageSelections && (
             <div>
               <h2 className="h6 fw-bold mb-1 registration-form-section-title">Package & fulfillment</h2>
               <p className="small registration-form-help mb-3">
                 Choose your package and delivery, then continue.
               </p>
-              {(fulfillmentErrors.distance || fulfillmentErrors.program) ? (
-                <div className="alert alert-warning py-2 px-3 small mb-3 registration-wizard-alert" role="alert">
-                  {fulfillmentErrors.distance ? <div className="mb-1">{fulfillmentErrors.distance}</div> : null}
-                  {fulfillmentErrors.program ? <div>{fulfillmentErrors.program}</div> : null}
-                </div>
-              ) : null}
 
-              {needsKitSelections && eventPayload?.category === 'running' && runningChoices && (
+              {needsPackageSelections && eventPayload?.category === 'running' && runningChoices && (
                 <div className="mb-3">
                   <label htmlFor="reg-run-pkg" className="form-label registration-form-field-label">
                     Registration package <span className="text-danger" aria-hidden>*</span>
@@ -1239,7 +1444,7 @@ const EventRegistrationFlow = () => {
                   )}
                 </div>
               )}
-              {needsKitSelections && eventPayload?.category === 'gym' && gymChoices && (
+              {needsPackageSelections && eventPayload?.category === 'gym' && gymChoices && (
                 <div className="mb-3">
                   <label htmlFor="reg-gym-pkg" className="form-label registration-form-field-label">
                     Membership / pass package <span className="text-danger" aria-hidden>*</span>
@@ -1292,141 +1497,7 @@ const EventRegistrationFlow = () => {
                 </div>
               )}
 
-              <div className="border-top pt-3 mt-2">
-                <label htmlFor="reg-delivery-zone" className="form-label registration-form-field-label">
-                  Kit / finisher delivery option <span className="text-danger" aria-hidden>*</span>
-                </label>
-                <p className="form-text registration-form-help mb-1">
-                  Pickup or courier — fee shown beside each option.
-                </p>
-                <select
-                  id="reg-delivery-zone"
-                  aria-invalid={!!fulfillmentErrors.delivery_zone}
-                  className={`form-select form-control-registration mb-2${fulfillmentErrors.delivery_zone ? ' is-invalid' : ''}`}
-                  value={deliveryAreaKey}
-                  onChange={(e) => {
-                    clearFulfillmentFieldError('delivery_zone')
-                    setDeliveryAreaKey(e.target.value)
-                  }}
-                >
-                  <option value="">Select option…</option>
-                  {deliveryAreas.map((row) => (
-                    <option key={row.key} value={row.key}>
-                      {row.label}
-                      {' '}
-                      (
-                      {formatPhp(row.fee_php)}
-                      )
-                    </option>
-                  ))}
-                </select>
-                {fulfillmentErrors.delivery_zone && (
-                  <div className="invalid-feedback d-block">{fulfillmentErrors.delivery_zone}</div>
-                )}
-                <div className="form-check mb-3">
-                  <input
-                    id="ship-same"
-                    type="checkbox"
-                    className="form-check-input"
-                    checked={shipSameAsRegistration}
-                    onChange={(e) => {
-                      setShipSameAsRegistration(e.target.checked)
-                      clearFulfillmentFieldError('delivery_address_line')
-                      clearFulfillmentFieldError('delivery_province')
-                      clearFulfillmentFieldError('delivery_city')
-                      clearFulfillmentFieldError('delivery_barangay')
-                    }}
-                  />
-                  <label className="form-check-label" htmlFor="ship-same">
-                    Ship to the same address as my registration profile
-                  </label>
-                </div>
-                {!shipSameAsRegistration && (
-                  <div className="row g-3 mb-2">
-                    <div className="col-12">
-                      <label htmlFor="reg-del-street" className="form-label registration-form-field-label">
-                        Courier street / building <span className="text-danger" aria-hidden>*</span>
-                      </label>
-                      <input
-                        id="reg-del-street"
-                        autoComplete="off"
-                        className={`form-control form-control-registration${fulfillmentErrors.delivery_address_line ? ' is-invalid' : ''}`}
-                        value={deliveryAddressLine}
-                        onChange={(e) => {
-                          clearFulfillmentFieldError('delivery_address_line')
-                          setDeliveryAddressLine(e.target.value)
-                        }}
-                      />
-                      {fulfillmentErrors.delivery_address_line && (
-                        <div className="invalid-feedback d-block">{fulfillmentErrors.delivery_address_line}</div>
-                      )}
-                    </div>
-                    <div className="col-md-4">
-                      <label htmlFor="reg-del-prov" className="form-label registration-form-field-label">
-                        Courier province <span className="text-danger" aria-hidden>*</span>
-                      </label>
-                      <input
-                        id="reg-del-prov"
-                        autoComplete="off"
-                        className={`form-control form-control-registration${fulfillmentErrors.delivery_province ? ' is-invalid' : ''}`}
-                        value={deliveryProvince}
-                        onChange={(e) => {
-                          clearFulfillmentFieldError('delivery_province')
-                          setDeliveryProvince(e.target.value)
-                        }}
-                      />
-                      {fulfillmentErrors.delivery_province && (
-                        <div className="invalid-feedback d-block">{fulfillmentErrors.delivery_province}</div>
-                      )}
-                    </div>
-                    <div className="col-md-4">
-                      <label htmlFor="reg-del-city" className="form-label registration-form-field-label">
-                        Courier city <span className="text-danger" aria-hidden>*</span>
-                      </label>
-                      <input
-                        id="reg-del-city"
-                        autoComplete="off"
-                        className={`form-control form-control-registration${fulfillmentErrors.delivery_city ? ' is-invalid' : ''}`}
-                        value={deliveryCity}
-                        onChange={(e) => {
-                          clearFulfillmentFieldError('delivery_city')
-                          setDeliveryCity(e.target.value)
-                        }}
-                      />
-                      {fulfillmentErrors.delivery_city && (
-                        <div className="invalid-feedback d-block">{fulfillmentErrors.delivery_city}</div>
-                      )}
-                    </div>
-                    <div className="col-md-4">
-                      <label htmlFor="reg-del-brgy" className="form-label registration-form-field-label">
-                        Courier barangay <span className="text-danger" aria-hidden>*</span>
-                      </label>
-                      <input
-                        id="reg-del-brgy"
-                        autoComplete="off"
-                        className={`form-control form-control-registration${fulfillmentErrors.delivery_barangay ? ' is-invalid' : ''}`}
-                        value={deliveryBarangay}
-                        onChange={(e) => {
-                          clearFulfillmentFieldError('delivery_barangay')
-                          setDeliveryBarangay(e.target.value)
-                        }}
-                      />
-                      {fulfillmentErrors.delivery_barangay && (
-                        <div className="invalid-feedback d-block">{fulfillmentErrors.delivery_barangay}</div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                <label htmlFor="reg-del-notes" className="form-label registration-form-field-label">Logistics notes (optional)</label>
-                <p className="form-text registration-form-help mb-1">Gate code, hours, or delivery notes.</p>
-                <textarea
-                  id="reg-del-notes"
-                  className="form-control form-control-registration"
-                  rows={2}
-                  value={deliveryNotes}
-                  onChange={(e) => setDeliveryNotes(e.target.value)}
-                />
-              </div>
+              <RegistrationDeliveryFields {...deliveryFieldProps} wrapperClassName="border-top pt-3 mt-2" />
             </div>
           )}
 
@@ -1451,10 +1522,12 @@ const EventRegistrationFlow = () => {
                       <th scope="row">Event fee</th>
                       <td>{feeLabel}</td>
                     </tr>
-                    <tr>
-                      <th scope="row">Delivery fee</th>
-                      <td>{formatPhp(Number(deliveryFeeSaved ?? 0))}</td>
-                    </tr>
+                    {needsPackageSelections && (
+                      <tr>
+                        <th scope="row">Delivery fee</th>
+                        <td>{formatPhp(Number(deliveryFeeSaved ?? 0))}</td>
+                      </tr>
+                    )}
                     <tr className="registration-payment-table__total">
                       <th scope="row">Total due</th>
                       <td>{formatPhp(summaryDueTotal)}</td>
@@ -1480,32 +1553,34 @@ const EventRegistrationFlow = () => {
                     </dl>
                   </section>
                 </div>
-                <div className="col-md-6">
-                  <section className="registration-summary-panel" aria-label="Package and delivery">
-                    <div className="registration-summary-panel__head">
-                      <RegSummaryIconFulfillment />
-                      <span className="registration-summary-panel__heading">Package &amp; delivery</span>
-                    </div>
-                    {summarySyncing && paymentSummaryFulfillmentRows.length === 0 ? (
-                      <p className="registration-summary-panel__empty mb-0">
-                        Loading package details…
-                      </p>
-                    ) : paymentSummaryFulfillmentRows.length === 0 ? (
-                      <p className="registration-summary-panel__empty mb-0">
-                        No package or delivery lines apply to this registration.
-                      </p>
-                    ) : (
-                      <dl className="registration-summary-dl">
-                        {paymentSummaryFulfillmentRows.map(([k, v], idx) => (
-                          <div key={`${k}-${idx}`} className="registration-summary-dl__row">
-                            <dt>{k}</dt>
-                            <dd>{v}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    )}
-                  </section>
-                </div>
+                {showFulfillmentSummaryPanel && (
+                  <div className="col-md-6">
+                    <section className="registration-summary-panel" aria-label={summaryFulfillmentAria}>
+                      <div className="registration-summary-panel__head">
+                        <RegSummaryIconFulfillment />
+                        <span className="registration-summary-panel__heading">{summaryFulfillmentHeading}</span>
+                      </div>
+                      {summarySyncing && paymentSummaryFulfillmentRows.length === 0 ? (
+                        <p className="registration-summary-panel__empty mb-0">
+                          Loading registration details…
+                        </p>
+                      ) : paymentSummaryFulfillmentRows.length === 0 ? (
+                        <p className="registration-summary-panel__empty mb-0">
+                          No package or delivery lines apply to this registration.
+                        </p>
+                      ) : (
+                        <dl className="registration-summary-dl">
+                          {paymentSummaryFulfillmentRows.map(([k, v], idx) => (
+                            <div key={`${k}-${idx}`} className="registration-summary-dl__row">
+                              <dt>{k}</dt>
+                              <dd>{v}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      )}
+                    </section>
+                  </div>
+                )}
               </div>
 
               <div className="registration-payment-cta">

@@ -37,33 +37,33 @@ export default function ProfileEarnedEventBadges({
       <section className="profile-earned-event-badges-block" aria-labelledby="profile-earned-event-badges-title">
         <div className="profile-side-head profile-joined-events-section-head">
           <h2 id="profile-earned-event-badges-title" className="profile-section-title mb-0">
-            Event Badges
+            Badges
           </h2>
         </div>
         {list.length === 0 ? (
           <div className="profile-library-muted">No event badges yet — finish a challenge distance goal first.</div>
         ) : (
-          <ul className="profile-earned-event-badges-grid" role="list">
+          <ul className="profile-earned-event-rewards-grid" role="list">
             {list.map((b) => {
               const src = resolveImg(b.image_url)
               const label = b.event_title ? `${b.event_title}${b.title ? ` · ${b.title}` : ''}` : b.title || 'Badge'
               return (
-                <li key={b.id} className="profile-earned-event-badge-li">
+                <li key={b.id} className="profile-earned-event-reward-li">
                   <button
                     type="button"
                     className="profile-earned-event-badge-btn"
                     onClick={() => openBadge(b)}
                     aria-label={`View and share badge: ${label}`}
                   >
-                    <div className="profile-earned-event-badge-circle-wrap" title={label}>
+                    <div className="profile-earned-event-reward-frame" title={label}>
                       {src ? (
-                        <img className="profile-earned-event-badge-img" src={src} alt={b.title || 'Event badge'} />
+                        <img className="profile-earned-event-reward-img" src={src} alt={b.title || 'Event badge'} />
                       ) : (
-                        <div className="profile-earned-event-badge-fallback" aria-hidden />
+                        <div className="profile-earned-event-reward-fallback" aria-hidden />
                       )}
                     </div>
                     {(b.title || b.event_title) && (
-                      <span className="profile-earned-event-badge-caption">{b.title || b.event_title}</span>
+                      <span className="profile-earned-event-reward-caption">{b.title || b.event_title}</span>
                     )}
                   </button>
                 </li>

@@ -167,7 +167,7 @@ export function validateParticipantStep(form, { accountEmail }) {
 
 /** @returns {Record<string,string>} */
 export function validateFulfillmentDelivery({
-  needsKitSelections,
+  needsPackageSelections,
   category,
   distanceValue,
   packageValue,
@@ -184,18 +184,19 @@ export function validateFulfillmentDelivery({
 }) {
   const errors = {}
 
-  if (needsKitSelections && category === 'running') {
-    if (!distanceValue?.trim())
-      errors.distance = 'Choose a race distance.'
+  if (needsPackageSelections && category === 'running') {
     if (!packageValue?.trim()) errors.package = 'Choose a package.'
     if (needsShirt && !shirtSize?.trim())
       errors.shirt_size = 'Choose a shirt size.'
   }
-  if (needsKitSelections && category === 'gym') {
-    if (!programValue?.trim()) errors.program = 'Choose a programme.'
+  if (needsPackageSelections && category === 'gym') {
     if (!gymPackageValue?.trim()) errors.membership_package = 'Choose a package.'
     if (needsShirt && !shirtSize?.trim())
       errors.shirt_size = 'Choose an apparel size.'
+  }
+
+  if (!needsPackageSelections) {
+    return errors
   }
 
   if (!deliveryAreaKey?.trim())
