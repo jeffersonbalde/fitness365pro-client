@@ -20,14 +20,14 @@ const resolveMediaUrl = (url) => {
   return `${API_ORIGIN}/${url}`
 }
 
-const EventRewardGallery = ({ items, variant = 'badge', resolveMediaUrl }) => {
+const EventRewardGallery = ({ items, resolveMediaUrl }) => {
   if (!Array.isArray(items) || items.length === 0) return null
 
   return (
-    <div className={`event-reward-gallery event-reward-gallery--${variant}`} role="list">
+    <div className="event-reward-gallery" role="list">
       {items.map((item, idx) => (
         <figure
-          key={`${variant}-${item.title}-${idx}`}
+          key={`reward-${item.title}-${idx}`}
           className="event-reward-card"
           role="listitem"
           title={item.title}
@@ -390,7 +390,6 @@ const EventDetails = () => {
                 ) : (
                   <EventRewardGallery
                     items={event.badgeItems}
-                    variant="badge"
                     resolveMediaUrl={resolveMediaUrl}
                   />
                 )}
@@ -401,7 +400,6 @@ const EventDetails = () => {
                   <h2 className="event-modern-section-title">Trophies</h2>
                   <EventRewardGallery
                     items={event.trophyItems}
-                    variant="trophy"
                     resolveMediaUrl={resolveMediaUrl}
                   />
                 </section>
