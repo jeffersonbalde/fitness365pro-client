@@ -47,6 +47,12 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
   const dismiss = useAppModalDismiss()
   const [busyKey, setBusyKey] = useState('')
 
+  const isPersonalizedReward = useMemo(() => {
+    if (badge?.base_image_url) return true
+    const url = badge?.image_url ? String(badge.image_url) : ''
+    return url.includes('/share/reward/')
+  }, [badge?.base_image_url, badge?.image_url])
+
   const imageSrc = useMemo(() => {
     const raw = badge?.image_url || ''
     return resolveMediaUrl ? resolveMediaUrl(raw) : raw
@@ -281,11 +287,18 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
 
       <div className="badge-share-modal-body">
         <div className="badge-share-hero">
-          <div className="badge-share-image-ring">
+          <div className={`badge-share-image-ring ${isPersonalizedReward ? 'is-personalized-reward' : ''}`}>
             {imageSrc ? (
-              <img className="badge-share-image" src={imageSrc} alt={badgeTitle} />
+              <img
+                className={`badge-share-image ${isPersonalizedReward ? 'is-personalized-reward' : ''}`}
+                src={imageSrc}
+                alt={badgeTitle}
+              />
             ) : (
-              <div className="badge-share-image-fallback" aria-hidden />
+              <div
+                className={`badge-share-image-fallback ${isPersonalizedReward ? 'is-personalized-reward' : ''}`}
+                aria-hidden
+              />
             )}
           </div>
           <div className="badge-share-verified-pill">

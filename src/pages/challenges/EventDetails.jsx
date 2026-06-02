@@ -9,6 +9,7 @@ import {
 } from './eventCatalog'
 import ChallengeProgressHistoryModal from '../../components/profile/ChallengeProgressHistoryModal.jsx'
 import EventShareModal from '../../components/challenges/EventShareModal.jsx'
+import EventRewardGallery from '../../components/challenges/EventRewardGallery.jsx'
 import './Challenges.css'
 
 const API_BASE_URL = import.meta.env.VITE_LARAVEL_API || 'http://localhost:8000/api'
@@ -19,33 +20,6 @@ const resolveMediaUrl = (url) => {
   if (url.startsWith('http://') || url.startsWith('https://')) return url
   if (url.startsWith('/')) return `${API_ORIGIN}${url}`
   return `${API_ORIGIN}/${url}`
-}
-
-const EventRewardGallery = ({ items, resolveMediaUrl }) => {
-  if (!Array.isArray(items) || items.length === 0) return null
-
-  return (
-    <div className="event-reward-gallery" role="list">
-      {items.map((item, idx) => (
-        <figure
-          key={`reward-${item.title}-${idx}`}
-          className="event-reward-card"
-          role="listitem"
-          title={item.title}
-        >
-          <div className="event-reward-card-media">
-            <img
-              src={resolveMediaUrl(item.imageUrl)}
-              alt={item.title}
-              className="event-reward-card-img"
-              loading="lazy"
-            />
-          </div>
-          <figcaption className="event-reward-card-caption">{item.title}</figcaption>
-        </figure>
-      ))}
-    </div>
-  )
 }
 
 const formatParticipantJoined = (iso) => {

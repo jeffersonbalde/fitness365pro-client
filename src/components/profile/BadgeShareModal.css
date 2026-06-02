@@ -29,6 +29,15 @@
   box-shadow: 0 12px 32px rgba(249, 115, 22, 0.28);
 }
 
+.badge-share-image-ring.is-personalized-reward {
+  width: 220px;
+  height: 220px;
+  border-radius: 16px;
+  padding: 6px;
+  background: linear-gradient(145deg, #1d79bc, #5fd100);
+  box-shadow: 0 12px 32px rgba(29, 121, 188, 0.22);
+}
+
 .event-share-cover-ring {
   width: min(100%, 280px);
   height: auto;
@@ -54,6 +63,14 @@
   display: block;
   border: 3px solid #fff;
   background: #f8fafc;
+}
+
+.badge-share-image.is-personalized-reward,
+.badge-share-image-fallback.is-personalized-reward {
+  border-radius: 12px;
+  object-fit: contain;
+  border-color: rgba(255, 255, 255, 0.95);
+  background: #0b1220;
 }
 
 .badge-share-verified-pill {
