@@ -3,25 +3,16 @@ import AppModalTransition, { useAppModalDismiss } from '../AppModalTransition.js
 import { notifyError, notifySuccess } from '../../utils/notifications'
 import { trackEvent } from '../../utils/telemetry'
 import {
-  buildBadgeShareCaption,
-  buildBadgeShareText,
-  buildBadgeShareUrl,
+  buildEventShareCaption,
+  buildEventShareText,
+  buildEventShareUrl,
   canUseNativeShare,
   copyTextToClipboard,
-  downloadBadgeImage,
-  prepareInstagramShare,
-  shareNative,
-  shareToFacebook,
+  shareEventNative,
+  shareEventToFacebook,
   shareViaPlatform,
-} from '../../utils/badgeShare'
-import './BadgeShareModal.css'
-
-const formatEarnedDate = (iso) => {
-  if (!iso) return null
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return null
-  return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
-}
+} from '../../utils/eventShare'
+import '../profile/BadgeShareModal.css'
 
 function ShareActionButton({ label, sublabel, icon, onClick, busy, variant = 'default' }) {
   return (
@@ -43,60 +34,49 @@ function ShareActionButton({ label, sublabel, icon, onClick, busy, variant = 'de
   )
 }
 
-function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
+function EventShareModalBody({ event, resolveMediaUrl }) {
   const dismiss = useAppModalDismiss()
   const [busyKey, setBusyKey] = useState('')
 
   const imageSrc = useMemo(() => {
-    const raw = badge?.image_url || ''
+    const raw = event?.imageUrl || ''
     return resolveMediaUrl ? resolveMediaUrl(raw) : raw
-  }, [badge?.image_url, resolveMediaUrl])
+  }, [event?.imageUrl, resolveMediaUrl])
 
-  const badgeTitle = badge?.title || 'Challenge Badge'
-  const eventTitle = badge?.event_title || 'Challenge'
-  const earnedLabel = formatEarnedDate(badge?.earned_at)
-
-  const shareUrl = useMemo(
-    () =>
-      buildBadgeShareUrl({
-        clientId,
-        eventId: badge?.event_id,
-        badgeKey: badge?.badge_key,
-      }),
-    [clientId, badge?.event_id, badge?.badge_key],
-  )
+  const eventName = event?.name || 'Fitness Event'
+  const shareUrl = useMemo(() => buildEventShareUrl(event?.id), [event?.id])
 
   const shareText = useMemo(
     () =>
-      buildBadgeShareText({
-        ownerName,
-        badgeTitle,
-        eventTitle,
+      buildEventShareText({
+        eventName,
+        location: event?.location,
+        timelineLabel: event?.timelineLabel,
+        feeLabel: event?.feeLabel,
         shareUrl,
       }),
-    [ownerName, badgeTitle, eventTitle, shareUrl],
+    [eventName, event?.location, event?.timelineLabel, event?.feeLabel, shareUrl],
   )
 
   const shareCaption = useMemo(
     () =>
-      buildBadgeShareCaption({
-        ownerName,
-        badgeTitle,
-        eventTitle,
+      buildEventShareCaption({
+        eventName,
+        location: event?.location,
+        timelineLabel: event?.timelineLabel,
+        feeLabel: event?.feeLabel,
       }),
-    [ownerName, badgeTitle, eventTitle],
+    [eventName, event?.location, event?.timelineLabel, event?.feeLabel],
   )
 
   const trackShare = useCallback(
     (channel) => {
-      trackEvent('badge_share', {
+      trackEvent('event_share', {
         channel,
-        badge_id: badge?.id,
-        event_id: badge?.event_id,
-        client_id: clientId,
+        event_id: event?.id,
       })
     },
-    [badge?.id, badge?.event_id, clientId],
+    [event?.id],
   )
 
   const runShare = useCallback(
@@ -117,9 +97,9 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
       const ok = await copyTextToClipboard(shareUrl)
       if (ok) {
         trackShare('copy_link')
-        notifySuccess('Share link copied!')
+        notifySuccess('Event link copied!')
       } else {
-        notifyError('Could not copy link. Please try again.')
+        notifyError('Could not copy link.')
       }
     })
 
@@ -134,22 +114,11 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
       }
     })
 
-  const onDownload = () =>
-    runShare('download', async () => {
-      const ok = await downloadBadgeImage(imageSrc, `fitness365-${badge?.badge_key || 'badge'}.png`)
-      if (ok) {
-        trackShare('download')
-        notifySuccess('Badge image downloaded!')
-      } else {
-        notifyError('Could not download badge image.')
-      }
-    })
-
   const onNativeShare = () =>
     runShare('native', async () => {
-      const result = await shareNative({
-        title: `${badgeTitle} — Fitness 365 Pro`,
-        text: shareCaption,
+      const result = await shareEventNative({
+        eventName,
+        shareCaption,
         shareUrl,
         imageUrl: imageSrc,
       })
@@ -163,7 +132,7 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
 
   const onFacebookShare = () =>
     runShare('facebook', async () => {
-      const result = await shareToFacebook({
+      const result = await shareEventToFacebook({
         shareUrl,
         shareCaption,
         imageUrl: imageSrc,
@@ -172,52 +141,32 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
 
       if (result.reason === 'missing_app_id') {
         notifyError(
-          'Facebook sharing needs a Meta App ID. Add VITE_FACEBOOK_APP_ID to client/.env (see FACEBOOK_APP_ID in server/.env).',
+          'Facebook sharing needs VITE_FACEBOOK_APP_ID in client/.env. Rebuild the app after setting it.',
         )
         return
       }
 
       if (result.ok) {
         if (result.mode === 'timeline_local_dev_manual') {
-          if (result.copied && result.downloaded) {
-            notifySuccess(
-              'Caption copied and badge downloaded. On Facebook: start a post, paste (Ctrl+V), then upload the badge image from your Downloads folder.',
-            )
-          } else if (result.copied) {
-            notifySuccess(
-              'Caption copied. On Facebook: start a post and paste (Ctrl+V). Download the badge image first if you want to attach it.',
-            )
-          } else {
-            notifySuccess(
-              'Facebook opened. Localhost links cannot show badge previews — use Copy caption and Download, then paste and attach the image manually.',
-            )
-          }
-          return
+          notifySuccess(
+            'Caption copied and event image saved (if available). On Facebook: start a post, paste (Ctrl+V), and add the image.',
+          )
+        } else if (result.mode === 'timeline_local_dev') {
+          notifySuccess(
+            'Facebook opened. On production (HTTPS), friends will see the event cover and details in the preview.',
+          )
+        } else {
+          notifySuccess('Facebook share opened! Confirm the post to publish.')
         }
-
-        notifySuccess(
-          result.mode === 'timeline_local_dev'
-            ? 'Facebook share opened! Confirm the post on Facebook. (Use a public HTTPS domain in production for badge image previews.)'
-            : 'Facebook share opened! Confirm the post to publish the badge to your timeline.',
-        )
         return
       }
 
-      if (result.reason === 'cancelled') {
-        return
-      }
-
-      if (result.copied && result.downloaded) {
-        notifyError(
-          'Facebook popup was blocked. Caption copied and badge saved — create a post on Facebook, paste (Ctrl+V), and upload the badge image.',
-        )
-        return
-      }
+      if (result.reason === 'cancelled') return
 
       if (result.reason === 'localhost_share_blocked') {
         if (result.copied && result.downloaded) {
           notifyError(
-            'Facebook blocked localhost sharing. Caption copied and badge saved — paste them into a new Facebook post.',
+            'Facebook blocked localhost. Caption copied and image saved — paste into a Facebook post.',
           )
         } else {
           notifyError(result.message)
@@ -225,16 +174,8 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
         return
       }
 
-      if (result.reason === 'facebook_error' || result.reason === 'sdk_failed') {
-        notifyError(
-          'Facebook blocked this share URL. In Meta → App settings: App domains = localhost; add Website platform (http://localhost:5173 and http://localhost:8000); Facebook Login → Valid OAuth Redirect URIs = those URLs. Allow pop-ups, restart npm run dev, then retry.',
-        )
-        return
-      }
-
       notifyError(
-        result.message ||
-          'Could not open Facebook Share Dialog. Allow pop-ups for this site and try again.',
+        result.message || 'Could not open Facebook. Allow pop-ups or use Copy link.',
       )
     })
 
@@ -245,25 +186,7 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
         trackShare(platform)
         notifySuccess(`Opening ${label}…`)
       } else {
-        notifyError(`Could not open ${label}. Allow pop-ups or copy the link instead.`)
-      }
-    })
-
-  const onInstagramShare = () =>
-    runShare('instagram', async () => {
-      const { copied, downloaded } = await prepareInstagramShare({
-        imageUrl: imageSrc,
-        caption: `${shareCaption}\n\n${shareUrl}`,
-      })
-      trackShare('instagram')
-      if (copied && downloaded) {
-        notifySuccess('Caption copied and badge saved! Open Instagram and share from your gallery.')
-      } else if (downloaded) {
-        notifySuccess('Badge saved! Open Instagram and share from your gallery.')
-      } else if (copied) {
-        notifySuccess('Caption copied! Save the badge image, then post on Instagram.')
-      } else {
-        notifyError('Could not prepare Instagram share. Try Download or Copy link.')
+        notifyError(`Could not open ${label}.`)
       }
     })
 
@@ -271,8 +194,8 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
     <>
       <div className="profile-social-modal-head">
         <div className="profile-social-modal-title-wrap">
-          <div className="profile-social-modal-title">Achievement Badge</div>
-          <div className="profile-social-modal-subtitle">Show off your verified challenge win</div>
+          <div className="profile-social-modal-title">Share event</div>
+          <div className="profile-social-modal-subtitle">Invite friends to register on Fitness 365 Pro</div>
         </div>
         <button type="button" className="profile-social-modal-close" onClick={dismiss} aria-label="Close">
           ×
@@ -281,27 +204,23 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
 
       <div className="badge-share-modal-body">
         <div className="badge-share-hero">
-          <div className="badge-share-image-ring">
+          <div className="badge-share-image-ring event-share-cover-ring">
             {imageSrc ? (
-              <img className="badge-share-image" src={imageSrc} alt={badgeTitle} />
+              <img className="badge-share-image event-share-cover-image" src={imageSrc} alt={eventName} />
             ) : (
               <div className="badge-share-image-fallback" aria-hidden />
             )}
           </div>
-          <div className="badge-share-verified-pill">
-            <span className="badge-share-verified-dot" aria-hidden />
-            Verified on Fitness 365 Pro
-          </div>
-          <h3 className="badge-share-title">{badgeTitle}</h3>
-          <p className="badge-share-event">{eventTitle}</p>
-          {earnedLabel ? <p className="badge-share-earned">Earned {earnedLabel}</p> : null}
-          <p className="badge-share-owner">
-            {ownerName ? `${ownerName} completed this challenge distance goal.` : 'Challenge distance goal completed.'}
-          </p>
+          <h3 className="badge-share-title">{eventName}</h3>
+          {event?.location ? <p className="badge-share-event">{event.location}</p> : null}
+          {event?.timelineLabel ? (
+            <p className="badge-share-earned">{event.timelineLabel}</p>
+          ) : null}
+          {event?.feeLabel ? <p className="badge-share-owner">{event.feeLabel}</p> : null}
         </div>
 
         <div className="badge-share-section">
-          <div className="badge-share-section-label">Share your win</div>
+          <div className="badge-share-section-label">Share this event</div>
           <div className="badge-share-actions-grid">
             {canUseNativeShare() ? (
               <ShareActionButton
@@ -322,7 +241,7 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
 
             <ShareActionButton
               label="Facebook"
-              sublabel="Post to your timeline"
+              sublabel="Post to timeline"
               busy={Boolean(busyKey)}
               onClick={onFacebookShare}
               icon={
@@ -333,22 +252,8 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
             />
 
             <ShareActionButton
-              label="Instagram"
-              sublabel="Save image + caption"
-              busy={Boolean(busyKey)}
-              onClick={onInstagramShare}
-              icon={
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="3" width="18" height="18" rx="5" />
-                  <circle cx="12" cy="12" r="4" />
-                  <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
-                </svg>
-              }
-            />
-
-            <ShareActionButton
               label="X (Twitter)"
-              sublabel="Tweet achievement"
+              sublabel="Tweet event link"
               busy={Boolean(busyKey)}
               onClick={() => onPlatformShare('twitter', 'X')}
               icon={
@@ -407,20 +312,6 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
                 </svg>
               }
             />
-
-            <ShareActionButton
-              label="Download"
-              sublabel="Save badge image"
-              busy={Boolean(busyKey)}
-              onClick={onDownload}
-              icon={
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-              }
-            />
           </div>
         </div>
       </div>
@@ -428,8 +319,8 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
   )
 }
 
-export default function BadgeShareModal({ open, onRequestClose, badge, ownerName, clientId, resolveMediaUrl }) {
-  if (!badge) return null
+export default function EventShareModal({ open, onRequestClose, event, resolveMediaUrl }) {
+  if (!event) return null
 
   return (
     <AppModalTransition
@@ -438,12 +329,7 @@ export default function BadgeShareModal({ open, onRequestClose, badge, ownerName
       backdropClassName="profile-social-modal-backdrop badge-share-modal-backdrop"
       panelClassName="profile-social-modal badge-share-modal"
     >
-      <BadgeShareModalBody
-        badge={badge}
-        ownerName={ownerName}
-        clientId={clientId}
-        resolveMediaUrl={resolveMediaUrl}
-      />
+      <EventShareModalBody event={event} resolveMediaUrl={resolveMediaUrl} />
     </AppModalTransition>
   )
 }

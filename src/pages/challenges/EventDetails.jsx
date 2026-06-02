@@ -8,6 +8,7 @@ import {
   toEvent,
 } from './eventCatalog'
 import ChallengeProgressHistoryModal from '../../components/profile/ChallengeProgressHistoryModal.jsx'
+import EventShareModal from '../../components/challenges/EventShareModal.jsx'
 import './Challenges.css'
 
 const API_BASE_URL = import.meta.env.VITE_LARAVEL_API || 'http://localhost:8000/api'
@@ -62,6 +63,7 @@ const EventDetails = () => {
   const [eventData, setEventData] = useState(null)
   const [nowMs, setNowMs] = useState(Date.now())
   const [challengeHistoryModal, setChallengeHistoryModal] = useState(null)
+  const [shareOpen, setShareOpen] = useState(false)
   const loadEventPayload = useCallback(async (options = {}) => {
     const silent = options.silent === true
     if (!eventId) return
@@ -325,7 +327,17 @@ const EventDetails = () => {
                 </p>
               ) : null}
 
-              <h1 className="event-modern-title">{event.name}</h1>
+              <div className="event-modern-title-row">
+                <h1 className="event-modern-title">{event.name}</h1>
+                <button
+                  type="button"
+                  className="challenge-card-share-btn event-details-share-btn"
+                  onClick={() => setShareOpen(true)}
+                  aria-label={`Share ${event.name}`}
+                >
+                  Share event
+                </button>
+              </div>
               <p className="event-modern-description">{event.description}</p>
 
               <div className="event-modern-info">
@@ -455,6 +467,14 @@ const EventDetails = () => {
         resolveMediaUrl={resolveMediaUrl}
         onClosed={() => setChallengeHistoryModal(null)}
       />
+      {event ? (
+        <EventShareModal
+          open={shareOpen}
+          event={event}
+          resolveMediaUrl={resolveMediaUrl}
+          onRequestClose={() => setShareOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }

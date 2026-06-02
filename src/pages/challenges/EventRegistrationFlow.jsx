@@ -1171,7 +1171,7 @@ const EventRegistrationFlow = () => {
                   )}
                 </div>
               )}
-              <div className="row g-3">
+              <div className="row g-3 registration-participant-grid">
                 <div className="col-md-6">
                   <label htmlFor="reg-fn" className="form-label registration-form-field-label">
                     First name <span className="text-danger" aria-hidden>*</span>
@@ -1305,16 +1305,17 @@ const EventRegistrationFlow = () => {
                     <div className="invalid-feedback d-block">{participantErrors.country}</div>
                   )}
                 </div>
-                <div className="col-12">
+                <div className="col-md-6">
                   <label htmlFor="reg-street" className="form-label registration-form-field-label">
                     Street address <span className="text-danger" aria-hidden>*</span>
                   </label>
-                  <p className="form-text registration-form-help mb-1">
+                  <p id="reg-street-help" className="form-text registration-form-help mb-1">
                     Include street or building — not numbers only.
                   </p>
                   <input
                     id="reg-street"
                     autoComplete="street-address"
+                    aria-describedby="reg-street-help"
                     className={`form-control form-control-registration${participantErrors.street_address ? ' is-invalid' : ''}`}
                     value={participantForm.street_address}
                     onChange={(e) => {
@@ -1326,7 +1327,25 @@ const EventRegistrationFlow = () => {
                     <div className="invalid-feedback d-block">{participantErrors.street_address}</div>
                   )}
                 </div>
-                <div className="col-md-4">
+                <div className="col-md-6">
+                  <label htmlFor="reg-barangay" className="form-label registration-form-field-label">
+                    Barangay / district <span className="text-danger" aria-hidden>*</span>
+                  </label>
+                  <input
+                    id="reg-barangay"
+                    autoComplete="off"
+                    className={`form-control form-control-registration${participantErrors.barangay ? ' is-invalid' : ''}`}
+                    value={participantForm.barangay}
+                    onChange={(e) => {
+                      clearParticipantFieldError('barangay')
+                      setParticipantForm((p) => ({ ...p, barangay: e.target.value }))
+                    }}
+                  />
+                  {participantErrors.barangay && (
+                    <div className="invalid-feedback d-block">{participantErrors.barangay}</div>
+                  )}
+                </div>
+                <div className="col-md-6">
                   <label htmlFor="reg-province" className="form-label registration-form-field-label">
                     Province / region <span className="text-danger" aria-hidden>*</span>
                   </label>
@@ -1344,7 +1363,7 @@ const EventRegistrationFlow = () => {
                     <div className="invalid-feedback d-block">{participantErrors.province}</div>
                   )}
                 </div>
-                <div className="col-md-4">
+                <div className="col-md-6">
                   <label htmlFor="reg-city" className="form-label registration-form-field-label">
                     City / municipality <span className="text-danger" aria-hidden>*</span>
                   </label>
@@ -1360,24 +1379,6 @@ const EventRegistrationFlow = () => {
                   />
                   {participantErrors.city && (
                     <div className="invalid-feedback d-block">{participantErrors.city}</div>
-                  )}
-                </div>
-                <div className="col-md-4">
-                  <label htmlFor="reg-barangay" className="form-label registration-form-field-label">
-                    Barangay / district <span className="text-danger" aria-hidden>*</span>
-                  </label>
-                  <input
-                    id="reg-barangay"
-                    autoComplete="off"
-                    className={`form-control form-control-registration${participantErrors.barangay ? ' is-invalid' : ''}`}
-                    value={participantForm.barangay}
-                    onChange={(e) => {
-                      clearParticipantFieldError('barangay')
-                      setParticipantForm((p) => ({ ...p, barangay: e.target.value }))
-                    }}
-                  />
-                  {participantErrors.barangay && (
-                    <div className="invalid-feedback d-block">{participantErrors.barangay}</div>
                   )}
                 </div>
               </div>

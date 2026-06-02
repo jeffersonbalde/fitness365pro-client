@@ -4,6 +4,7 @@ import { apiRequest, ensureAccessToken } from '../../utils/api'
 import { notifyError } from '../../utils/notifications'
 import { toEvent, deriveChallengeProgressCtas } from './eventCatalog'
 import ChallengeProgressHistoryModal from '../../components/profile/ChallengeProgressHistoryModal.jsx'
+import EventShareModal from '../../components/challenges/EventShareModal.jsx'
 import { AppLoadingState } from '../../components/AppLoadingState.jsx'
 import './Challenges.css'
 
@@ -24,6 +25,7 @@ const Challenges = () => {
   const [loadError, setLoadError] = useState(null)
   const [challenges, setChallenges] = useState([])
   const [historyModal, setHistoryModal] = useState(null)
+  const [shareEvent, setShareEvent] = useState(null)
 
   const completedChallengeIdsFromEvents = useMemo(() => {
     const ids = new Set()
@@ -155,6 +157,12 @@ const Challenges = () => {
                     }
                   }
 
+                  const openShare = (e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setShareEvent(event)
+                  }
+
                   return (
                     <div key={challenge.id} className="challenge-card">
                       <button
@@ -176,6 +184,14 @@ const Challenges = () => {
                         <div className="challenge-card-body">
                           <div className="challenge-top">
                             <div className="challenge-name">{event.name}</div>
+                            <button
+                              type="button"
+                              className="challenge-card-share-btn"
+                              onClick={openShare}
+                              aria-label={`Share ${event.name}`}
+                            >
+                              Share
+                            </button>
                           </div>
                           <div className="challenge-description">
                             {event.description}
@@ -221,6 +237,12 @@ const Challenges = () => {
         eventTitleFallback={historyModal?.title || ''}
         resolveMediaUrl={resolveMediaUrl}
         onClosed={() => setHistoryModal(null)}
+      />
+      <EventShareModal
+        open={Boolean(shareEvent)}
+        event={shareEvent}
+        resolveMediaUrl={resolveMediaUrl}
+        onRequestClose={() => setShareEvent(null)}
       />
     </div>
   )

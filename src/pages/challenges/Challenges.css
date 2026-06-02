@@ -175,11 +175,42 @@
 }
 
 .challenge-top {
-  display: block;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.challenge-card-share-btn {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(29, 121, 188, 0.35);
+  background: rgba(29, 121, 188, 0.08);
+  color: var(--brand-primary, #1d79bc);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.challenge-card-share-btn:hover {
+  background: rgba(29, 121, 188, 0.16);
+  border-color: rgba(29, 121, 188, 0.55);
+}
+
+.challenge-card-share-btn:focus-visible {
+  outline: 2px solid var(--brand-primary, #1d79bc);
+  outline-offset: 2px;
 }
 
 .challenge-name {
-  margin-top: 14px;
+  margin-top: 0;
+  flex: 1;
+  min-width: 0;
   font-size: 1.15rem;
   font-weight: 800;
   color: #0f172a;
@@ -867,6 +898,27 @@ a.event-modern-person:hover {
   color: #64748b;
 }
 
+.event-modern-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 22px;
+  margin-bottom: 8px;
+}
+
+.event-modern-title-row .event-modern-title {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.event-details-share-btn {
+  margin-top: 4px;
+  padding: 8px 16px;
+  font-size: 0.8rem;
+}
+
 .event-modern-title {
   margin-top: 22px;
   margin-bottom: 8px;
@@ -1001,6 +1053,17 @@ a.event-modern-person:hover {
 [data-theme='dark'] .challenge-meta,
 [data-theme='dark'] .challenge-description {
   color: #b8c5d8;
+}
+
+[data-theme='dark'] .challenge-card-share-btn {
+  border-color: rgba(95, 209, 0, 0.35);
+  background: rgba(29, 121, 188, 0.2);
+  color: #93c5fd;
+}
+
+[data-theme='dark'] .challenge-card-share-btn:hover {
+  background: rgba(29, 121, 188, 0.32);
+  border-color: rgba(95, 209, 0, 0.5);
 }
 
 [data-theme='dark'] .challenge-info-label {
@@ -1203,6 +1266,21 @@ a.event-modern-person:hover {
   font-size: 0.74rem;
   line-height: 1.45;
   color: #64748b;
+}
+
+.registration-wizard-card .registration-participant-grid > [class*='col-'] {
+  display: flex;
+  flex-direction: column;
+}
+
+.registration-wizard-card .registration-participant-grid > [class*='col-'] > .form-control,
+.registration-wizard-card .registration-participant-grid > [class*='col-'] > .form-select {
+  margin-top: auto;
+}
+
+.registration-wizard-card .registration-participant-grid .registration-form-help {
+  margin-bottom: 0.25rem;
+  flex-shrink: 0;
 }
 
 .registration-wizard-card .registration-form-email[readonly],

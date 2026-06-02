@@ -13,6 +13,33 @@ export const getFacebookAppId = () => {
 
 export const hasFacebookAppId = () => Boolean(getFacebookAppId())
 
+/** True for http://localhost or http://127.0.0.1 (Meta Share Dialog is picky on local URLs). */
+export const isLocalDevelopmentUrl = (url) => {
+  if (!url) return false
+  try {
+    const { hostname, protocol } = new URL(url)
+    const host = hostname.toLowerCase()
+    return protocol === 'http:' && (host === 'localhost' || host === '127.0.0.1')
+  } catch {
+    return false
+  }
+}
+
+/** OAuth redirect after share — must be whitelisted in Meta (Facebook Login settings). */
+export const getFacebookRedirectUri = (shareUrl) => {
+  const frontend = import.meta.env.VITE_FRONTEND_URL
+  if (frontend && String(frontend).trim()) {
+    return `${String(frontend).trim().replace(/\/$/, '')}/`
+  }
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin.replace(/\/$/, '')}/`
+  }
+  if (isLocalDevelopmentUrl(shareUrl)) {
+    return 'http://localhost:5173/'
+  }
+  return shareUrl
+}
+
 const loadFacebookSdk = () =>
   new Promise((resolve, reject) => {
     if (typeof window === 'undefined') {
@@ -115,11 +142,24 @@ export const buildFacebookDialogShareUrl = ({ shareUrl, hashtag = '#Fitness365Pr
     app_id: appId,
     display: 'popup',
     href: shareUrl,
-    redirect_uri: shareUrl,
+    redirect_uri: getFacebookRedirectUri(shareUrl),
     hashtag: hashtag.startsWith('#') ? hashtag : `#${hashtag}`,
   })
 
   return `https://www.facebook.com/dialog/share?${params.toString()}`
+}
+
+export const openFacebookLegacySharerPopup = (shareUrl) => {
+  if (!shareUrl || typeof window === 'undefined') return false
+
+  const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`
+  const w = 626
+  const h = 436
+  const left = Math.max(0, (window.screen.width - w) / 2)
+  const top = Math.max(0, (window.screen.height - h) / 2)
+  const popup = window.open(url, 'facebook-sharer', `width=${w},height=${h},left=${left},top=${top}`)
+
+  return Boolean(popup)
 }
 
 export const openFacebookDialogSharePopup = ({ shareUrl, hashtag }) => {

@@ -5,7 +5,9 @@
 import {
   getFacebookAppId,
   hasFacebookAppId,
+  isLocalDevelopmentUrl,
   openFacebookDialogSharePopup,
+  openFacebookLegacySharerPopup,
   openFacebookShareDialog,
 } from './facebookShare'
 
@@ -139,6 +141,25 @@ export const shareToFacebook = async ({ shareUrl, shareCaption, imageUrl }) => {
 
   if (!shareUrl) {
     return { ok: false, reason: 'missing_url', opened: false, copied: false, downloaded: false }
+  }
+
+  const localDev = isLocalDevelopmentUrl(shareUrl)
+
+  // Facebook's crawlers cannot read http://localhost — link previews and badge images will not appear.
+  // Prepare caption + image for a manual post instead of opening an empty composer.
+  if (localDev) {
+    const copied = shareCaption ? await copyTextToClipboard(shareCaption) : false
+    const downloaded = imageUrl ? await downloadBadgeImage(imageUrl) : false
+    const opened = openExternalUrl('https://www.facebook.com/')
+
+    return {
+      ok: true,
+      method: 'localhost_manual_post',
+      opened,
+      copied,
+      downloaded,
+      mode: 'timeline_local_dev_manual',
+    }
   }
 
   const sdkResult = await openFacebookShareDialog({
