@@ -13,13 +13,37 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_LARAVEL_API || 'http://localhost:8000/api'
 
-/** Public server origin used for Facebook OG share pages (Laravel /share/badge/...). */
+const normalizeOrigin = (value) => {
+  if (!value || !String(value).trim()) return ''
+  return String(value).trim().replace(/\/$/, '')
+}
+
+/** Laravel API origin (where /share/event and /share/badge routes live). */
+export const getApiShareOrigin = () => normalizeOrigin(API_BASE_URL.replace(/\/api\/?$/, ''))
+
+/**
+ * Public server origin for Facebook OG pages (/share/event/..., /share/badge/...).
+ * Must be the Laravel host — NOT the React SPA (fitness365pro.com alone has no OG tags).
+ */
 export const getPublicShareOrigin = () => {
-  const configured = import.meta.env.VITE_PUBLIC_APP_URL
-  if (configured && String(configured).trim()) {
-    return String(configured).trim().replace(/\/$/, '')
+  const apiOrigin = getApiShareOrigin()
+  const configured = normalizeOrigin(import.meta.env.VITE_PUBLIC_APP_URL)
+  const frontendEnv = normalizeOrigin(import.meta.env.VITE_FRONTEND_URL)
+  const windowOrigin =
+    typeof window !== 'undefined' && window.location?.origin
+      ? normalizeOrigin(window.location.origin)
+      : ''
+  const frontendOrigin = frontendEnv || windowOrigin
+
+  if (configured) {
+    // Common misconfig: VITE_PUBLIC_APP_URL = SPA domain while API is on another host/path.
+    if (frontendOrigin && configured === frontendOrigin && apiOrigin && apiOrigin !== configured) {
+      return apiOrigin
+    }
+    return configured
   }
-  return API_BASE_URL.replace(/\/api\/?$/, '')
+
+  return apiOrigin
 }
 
 /** Client SPA origin for in-app navigation. */

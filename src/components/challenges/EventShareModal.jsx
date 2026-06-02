@@ -132,6 +132,13 @@ function EventShareModalBody({ event, resolveMediaUrl }) {
 
   const onFacebookShare = () =>
     runShare('facebook', async () => {
+      if (shareUrl && !shareUrl.includes('/share/event/')) {
+        notifyError(
+          'Share preview is misconfigured. Set VITE_LARAVEL_API to your Laravel API URL, rebuild the client, then try again.',
+        )
+        return
+      }
+
       const result = await shareEventToFacebook({
         shareUrl,
         shareCaption,
@@ -241,7 +248,17 @@ function EventShareModalBody({ event, resolveMediaUrl }) {
 
             <ShareActionButton
               label="Facebook"
-              sublabel="Post to timeline"
+              sublabel={
+                shareUrl
+                  ? `Rich preview · ${(() => {
+                      try {
+                        return new URL(shareUrl).host
+                      } catch {
+                        return 'preview link'
+                      }
+                    })()}`
+                  : 'Post to timeline'
+              }
               busy={Boolean(busyKey)}
               onClick={onFacebookShare}
               icon={
