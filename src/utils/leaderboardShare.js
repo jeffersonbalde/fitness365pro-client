@@ -3,6 +3,7 @@
  */
 
 import { getClientAppOrigin, getPublicShareOrigin } from './badgeShare'
+import { buildEventShareUrl } from './eventShare'
 import {
   canUseNativeShare,
   copyTextToClipboard,
@@ -115,15 +116,31 @@ export const buildLeaderboardShareCaption = ({
   return `I'm ranked ${place} in "${event}" on Fitness 365 Pro${stats}.`
 }
 
-/** Facebook link share — uses sharer.php with explicit ?u= (same pipeline as event share). */
-export const shareLeaderboardToFacebook = async ({ shareUrl, shareCaption, imageUrl }) =>
-  shareToFacebook({
-    shareUrl,
+/** Caption + standing link (for clipboard / non-Facebook channels). */
+export const buildLeaderboardShareCaptionWithLink = (params, standingUrl) => {
+  const caption = buildLeaderboardShareCaption(params)
+  if (!standingUrl) return caption
+  return `${caption}\n${standingUrl}`
+}
+
+/**
+ * Facebook preview URL — must match the working Events share page (/share/event/{id}).
+ * Meta reliably scrapes event OG; long /share/leaderboard/... URLs often show only the domain.
+ */
+export const buildLeaderboardFacebookShareUrl = (eventId) => buildEventShareUrl(eventId)
+
+/** Facebook share: event OG link + leaderboard caption (same flow as EventShareModal). */
+export const shareLeaderboardToFacebook = async ({ eventId, shareCaption, imageUrl, shareUrl }) => {
+  const facebookUrl = buildLeaderboardFacebookShareUrl(eventId) || shareUrl
+
+  return shareToFacebook({
+    shareUrl: facebookUrl,
     shareCaption,
     imageUrl,
     hashtag: null,
     preCopyCaption: true,
   })
+}
 
 export const shareLeaderboardNative = async ({ eventTitle, shareCaption, shareUrl, imageUrl }) =>
   shareNative({

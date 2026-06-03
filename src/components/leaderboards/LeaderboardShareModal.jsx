@@ -10,6 +10,8 @@ import {
   buildLeaderboardShareUrl,
   canUseNativeShare,
   copyTextToClipboard,
+  buildLeaderboardFacebookShareUrl,
+  buildLeaderboardShareCaptionWithLink,
   shareLeaderboardNative,
   shareLeaderboardToFacebook,
   shareViaPlatform,
@@ -111,6 +113,32 @@ function LeaderboardShareModalBody({
     [ownerName, eventTitle, rank, loggedKm, progressPercent, goalCompleted, categoryLabel],
   )
 
+  const facebookShareCaption = useMemo(
+    () =>
+      buildLeaderboardShareCaptionWithLink(
+        {
+          ownerName,
+          eventTitle,
+          rank,
+          loggedKm,
+          progressPercent,
+          goalCompleted,
+          categoryLabel,
+        },
+        shareUrl,
+      ),
+    [
+      ownerName,
+      eventTitle,
+      rank,
+      loggedKm,
+      progressPercent,
+      goalCompleted,
+      categoryLabel,
+      shareUrl,
+    ],
+  )
+
   const trackShare = useCallback(
     (channel) => {
       trackEvent('leaderboard_share', {
@@ -173,9 +201,14 @@ function LeaderboardShareModalBody({
       }
     })
 
+  const facebookShareUrl = useMemo(
+    () => buildLeaderboardFacebookShareUrl(eventId),
+    [eventId],
+  )
+
   const onFacebookShare = () =>
     runShare('facebook', async () => {
-      if (shareUrl && !shareUrl.includes('/share/leaderboard/')) {
+      if (facebookShareUrl && !facebookShareUrl.includes('/share/event/')) {
         notifyError(
           'Share preview is misconfigured. Set VITE_LARAVEL_API to your Laravel API URL, rebuild the client, then try again.',
         )
@@ -183,8 +216,9 @@ function LeaderboardShareModalBody({
       }
 
       const result = await shareLeaderboardToFacebook({
+        eventId,
         shareUrl,
-        shareCaption,
+        shareCaption: facebookShareCaption,
         imageUrl: cardImageSrc,
       })
       trackShare('facebook')
@@ -203,7 +237,7 @@ function LeaderboardShareModalBody({
           )
         } else if (result.copied) {
           notifySuccess(
-            'Caption copied — paste (Ctrl+V) in Facebook. Confirm the post to publish your rank preview.',
+            'Caption copied — paste (Ctrl+V) if needed. The event image preview matches Events share.',
           )
         } else {
           notifySuccess('Facebook share opened! Confirm the post to publish.')
