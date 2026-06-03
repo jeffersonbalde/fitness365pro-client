@@ -15,7 +15,7 @@ import {
 export { canUseNativeShare, copyTextToClipboard, shareViaPlatform, shareToFacebook }
 
 /**
- * Canonical URL Facebook crawls (server-rendered OG at /share/leaderboard/...).
+ * Canonical URL for copy / WhatsApp (dedicated leaderboard OG page).
  */
 export const buildLeaderboardShareUrl = ({ eventId, clientId, category = 'all' }) => {
   if (!eventId || !clientId) return ''
@@ -26,6 +26,22 @@ export const buildLeaderboardShareUrl = ({ eventId, clientId, category = 'all' }
     return `${base}?category=${encodeURIComponent(cat)}`
   }
   return base
+}
+
+/**
+ * Facebook preview URL — /share/event/{id}?standing={clientId}.
+ * Uses the event path Meta already scrapes, with leaderboard rank-card OG tags.
+ */
+export const buildLeaderboardFacebookShareUrl = ({ eventId, clientId, category = 'all' }) => {
+  if (!eventId || !clientId) return ''
+  const base = buildEventShareUrl(eventId)
+  if (!base) return ''
+  const params = new URLSearchParams({ standing: String(clientId) })
+  const cat = String(category || '').trim()
+  if (cat && cat !== 'all') {
+    params.set('category', cat)
+  }
+  return `${base}?${params.toString()}`
 }
 
 /** Dynamic OG card image (rank + stats). */
@@ -123,15 +139,15 @@ export const buildLeaderboardShareCaptionWithLink = (params, standingUrl) => {
   return `${caption}\n${standingUrl}`
 }
 
-/**
- * Facebook preview URL — must match the working Events share page (/share/event/{id}).
- * Meta reliably scrapes event OG; long /share/leaderboard/... URLs often show only the domain.
- */
-export const buildLeaderboardFacebookShareUrl = (eventId) => buildEventShareUrl(eventId)
-
-/** Facebook share: event OG link + leaderboard caption (same flow as EventShareModal). */
-export const shareLeaderboardToFacebook = async ({ eventId, shareCaption, imageUrl, shareUrl }) => {
-  const facebookUrl = buildLeaderboardFacebookShareUrl(eventId) || shareUrl
+/** Facebook: event share path + standing query → rank-card OG image (not plain event banner). */
+export const shareLeaderboardToFacebook = async ({
+  eventId,
+  clientId,
+  category = 'all',
+  shareCaption,
+  imageUrl,
+}) => {
+  const facebookUrl = buildLeaderboardFacebookShareUrl({ eventId, clientId, category })
 
   return shareToFacebook({
     shareUrl: facebookUrl,

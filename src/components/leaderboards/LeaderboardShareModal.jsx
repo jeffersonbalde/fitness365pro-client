@@ -202,13 +202,13 @@ function LeaderboardShareModalBody({
     })
 
   const facebookShareUrl = useMemo(
-    () => buildLeaderboardFacebookShareUrl(eventId),
-    [eventId],
+    () => buildLeaderboardFacebookShareUrl({ eventId, clientId, category: categoryFilter }),
+    [eventId, clientId, categoryFilter],
   )
 
   const onFacebookShare = () =>
     runShare('facebook', async () => {
-      if (facebookShareUrl && !facebookShareUrl.includes('/share/event/')) {
+      if (facebookShareUrl && !facebookShareUrl.includes('standing=')) {
         notifyError(
           'Share preview is misconfigured. Set VITE_LARAVEL_API to your Laravel API URL, rebuild the client, then try again.',
         )
@@ -217,7 +217,8 @@ function LeaderboardShareModalBody({
 
       const result = await shareLeaderboardToFacebook({
         eventId,
-        shareUrl,
+        clientId,
+        category: categoryFilter,
         shareCaption: facebookShareCaption,
         imageUrl: cardImageSrc,
       })
@@ -237,7 +238,7 @@ function LeaderboardShareModalBody({
           )
         } else if (result.copied) {
           notifySuccess(
-            'Caption copied — paste (Ctrl+V) if needed. The event image preview matches Events share.',
+            'Caption copied — paste (Ctrl+V) if needed. Facebook should show your rank card preview (not the plain event banner).',
           )
         } else {
           notifySuccess('Facebook share opened! Confirm the post to publish.')
