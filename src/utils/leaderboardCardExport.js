@@ -1,10 +1,20 @@
 /**
- * Export the in-app brag card DOM to PNG (works even when server card.png fails).
+ * Rank-card PNG for Facebook: server card.png first (no CDN CORS), html2canvas fallback.
  */
 
 import html2canvas from 'html2canvas'
 
-const waitForImages = (root) => {
+const EXPORT_TIMEOUT_MS = 18000
+
+const withTimeout = (promise, ms, label = 'operation') =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`${label} timed out`)), ms)
+    }),
+  ])
+
+const waitForImages = (root, maxMs = 8000) => {
   const imgs = root.querySelectorAll('img')
   const pending = [...imgs].map(
     (img) =>
@@ -13,29 +23,74 @@ const waitForImages = (root) => {
           resolve()
           return
         }
-        img.addEventListener('load', () => resolve(), { once: true })
-        img.addEventListener('error', () => resolve(), { once: true })
+        const done = () => resolve()
+        img.addEventListener('load', done, { once: true })
+        img.addEventListener('error', done, { once: true })
       }),
   )
-  return Promise.all(pending)
+  return Promise.race([
+    Promise.all(pending),
+    new Promise((resolve) => setTimeout(resolve, maxMs)),
+  ])
 }
 
-export const exportLeaderboardCardBlob = async (element) => {
+/** Fetch Laravel-generated rank card (same host in prod; server proxies event banner). */
+export const fetchLeaderboardCardBlob = async (cardImageUrl, timeoutMs = EXPORT_TIMEOUT_MS) => {
+  if (!cardImageUrl || typeof fetch === 'undefined') return null
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    const res = await fetch(cardImageUrl, {
+      signal: controller.signal,
+      credentials: 'omit',
+      cache: 'no-store',
+    })
+    if (!res.ok) return null
+    const blob = await res.blob()
+    if (!blob || blob.size < 64) return null
+    return blob
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+export const exportLeaderboardCardBlob = async (element, { cardImageUrl } = {}) => {
+  if (cardImageUrl) {
+    const remote = await fetchLeaderboardCardBlob(cardImageUrl)
+    if (remote) return remote
+  }
+
   if (!element) return null
 
   await waitForImages(element)
 
-  const canvas = await html2canvas(element, {
-    backgroundColor: '#0f172a',
-    scale: Math.min(2, window.devicePixelRatio || 2),
-    useCORS: true,
-    allowTaint: false,
-    logging: false,
-  })
+  try {
+    const canvas = await withTimeout(
+      html2canvas(element, {
+        backgroundColor: '#0f172a',
+        scale: Math.min(2, window.devicePixelRatio || 2),
+        useCORS: false,
+        allowTaint: true,
+        logging: false,
+      }),
+      EXPORT_TIMEOUT_MS,
+      'html2canvas',
+    )
 
-  return new Promise((resolve) => {
-    canvas.toBlob((blob) => resolve(blob), 'image/png', 0.92)
-  })
+    return await new Promise((resolve) => {
+      try {
+        canvas.toBlob((blob) => resolve(blob), 'image/png', 0.92)
+      } catch {
+        resolve(null)
+      }
+    })
+  } catch {
+    return null
+  }
 }
 
 export const downloadBlob = (blob, filename) => {

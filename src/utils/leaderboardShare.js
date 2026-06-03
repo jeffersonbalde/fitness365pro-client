@@ -150,8 +150,20 @@ export const buildLeaderboardOgTitle = ({ rank, eventTitle }) => {
  * Facebook: save rank-card PNG + open Facebook (photo post — same big image as Events preview).
  * Meta link-share popups ignore our URL; uploading the card image always works.
  */
-export const shareLeaderboardToFacebook = async ({ cardElement, shareCaption, rank, shareUrl }) => {
-  const blob = await exportLeaderboardCardBlob(cardElement)
+export const shareLeaderboardToFacebook = async ({
+  cardElement,
+  cardImageUrl,
+  shareCaption,
+  rank,
+  shareUrl,
+}) => {
+  let blob = null
+  try {
+    blob = await exportLeaderboardCardBlob(cardElement, { cardImageUrl })
+  } catch {
+    blob = null
+  }
+
   if (!blob) {
     return {
       ok: false,

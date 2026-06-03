@@ -184,6 +184,7 @@ function LeaderboardShareModalBody({
 
       const result = await shareLeaderboardToFacebook({
         cardElement: cardEl,
+        cardImageUrl: cardImageSrc,
         shareCaption,
         rank,
         shareUrl,
