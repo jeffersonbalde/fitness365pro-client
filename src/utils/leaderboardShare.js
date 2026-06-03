@@ -115,7 +115,7 @@ export const buildLeaderboardShareCaption = ({
   return `I'm ranked ${place} in "${event}" on Fitness 365 Pro${stats}.`
 }
 
-/** Same Facebook Share Dialog flow as event sharing (server OG page at /share/leaderboard/...). */
+/** Facebook link share — uses sharer.php with explicit ?u= (same pipeline as event share). */
 export const shareLeaderboardToFacebook = async ({ shareUrl, shareCaption, imageUrl }) =>
   shareToFacebook({
     shareUrl,

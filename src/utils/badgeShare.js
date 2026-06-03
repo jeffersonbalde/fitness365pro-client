@@ -210,17 +210,28 @@ export const shareToFacebook = async ({
     }
   }
 
-  if (preferDialogPopup) {
-    const popupFirst = openFacebookDialogSharePopup({ shareUrl, hashtag })
-    if (popupFirst) {
-      return {
-        ok: true,
-        method: 'facebook_dialog_popup',
-        opened: true,
-        copied,
-        downloaded: false,
-        mode: isPublicShareUrl(shareUrl) ? 'timeline_with_preview' : 'timeline_local_dev',
-      }
+  // FB.ui "share_channel" often ignores href and shows only the site domain — pass ?u= explicitly.
+  const legacySharer = openFacebookLegacySharerPopup(shareUrl)
+  if (legacySharer) {
+    return {
+      ok: true,
+      method: 'facebook_legacy_sharer',
+      opened: true,
+      copied,
+      downloaded: false,
+      mode: isPublicShareUrl(shareUrl) ? 'timeline_with_preview' : 'timeline_local_dev',
+    }
+  }
+
+  const dialogPopup = openFacebookDialogSharePopup({ shareUrl, hashtag })
+  if (dialogPopup) {
+    return {
+      ok: true,
+      method: 'facebook_dialog_popup',
+      opened: true,
+      copied,
+      downloaded: false,
+      mode: isPublicShareUrl(shareUrl) ? 'timeline_with_preview' : 'timeline_local_dev',
     }
   }
 
@@ -242,18 +253,6 @@ export const shareToFacebook = async ({
 
   if (sdkResult.reason === 'cancelled') {
     return { ok: false, reason: 'cancelled', opened: false, copied, downloaded: false }
-  }
-
-  const popupOpened = openFacebookDialogSharePopup({ shareUrl, hashtag })
-  if (popupOpened) {
-    return {
-      ok: true,
-      method: 'facebook_dialog_popup',
-      opened: true,
-      copied,
-      downloaded: false,
-      mode: isPublicShareUrl(shareUrl) ? 'timeline_with_preview' : 'timeline_local_dev',
-    }
   }
 
   if (!copied && shareCaption) {

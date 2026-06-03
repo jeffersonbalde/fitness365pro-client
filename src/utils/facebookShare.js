@@ -162,7 +162,16 @@ export const buildFacebookDialogShareUrl = ({ shareUrl, hashtag = null }) => {
 export const openFacebookLegacySharerPopup = (shareUrl) => {
   if (!shareUrl || typeof window === 'undefined') return false
 
-  const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`
+  const params = new URLSearchParams({
+    u: shareUrl,
+    display: 'popup',
+  })
+  const appId = getFacebookAppId()
+  if (appId) {
+    params.set('app_id', appId)
+  }
+
+  const url = `https://www.facebook.com/sharer/sharer.php?${params.toString()}`
   const w = 626
   const h = 436
   const left = Math.max(0, (window.screen.width - w) / 2)
