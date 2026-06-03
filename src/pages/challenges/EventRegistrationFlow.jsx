@@ -294,6 +294,7 @@ const EventRegistrationFlow = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const verifyOnce = useRef(false)
+  const autoSyncOnce = useRef(false)
   const checkoutResumeHydratedRef = useRef(false)
 
   const [loading, setLoading] = useState(true)
@@ -556,6 +557,27 @@ const EventRegistrationFlow = () => {
 
     setStepIndex(summaryIdx)
   }, [registrationState, steps, navigate, eventId])
+
+  // QR / Maya app payments often skip the success redirect — poll gateway on resume.
+  useEffect(() => {
+    if (!eventId || autoSyncOnce.current) return
+
+    const awaitingCheckout =
+      registrationState?.registration?.payment_status === 'pending_checkout'
+      && registrationState?.registration?.registration_status === 'pending_payment'
+
+    if (!awaitingCheckout) return
+
+    autoSyncOnce.current = true
+    void (async () => {
+      setBusy(true)
+      try {
+        await syncPendingPayment({ silent: true })
+      } finally {
+        setBusy(false)
+      }
+    })()
+  }, [eventId, registrationState, syncPendingPayment])
 
   /** After cancelling PayMaya, user may walk forward again — allow normal “resume at summary” on later reloads */
   useEffect(() => {
@@ -833,6 +855,34 @@ const EventRegistrationFlow = () => {
     }
   }
 
+  /** Poll Maya using stored checkout / reference numbers (works after QR pay without redirect). */
+  const syncPendingPayment = useCallback(async ({ silent = false } = {}) => {
+    if (!eventId) return false
+
+    try {
+      const res = await apiRequest(`/v1/cms/events/${eventId}/registration/paymaya/sync`, {
+        method: 'POST',
+        body: {},
+      })
+      if (res.data?.success && res.data?.data?.paid) {
+        if (!silent) {
+          notifySuccess(res.data.message || 'Payment verified. Welcome aboard!')
+        }
+        navigate(`/challenges/${eventId}`)
+        return true
+      }
+      if (!silent) {
+        notifyError(res.data?.message || 'Payment is not finalized yet.')
+      }
+    } catch (error) {
+      if (!silent) {
+        notifyError(error?.response?.data?.message || 'Could not verify payment yet.')
+      }
+    }
+
+    return false
+  }, [eventId, navigate])
+
   /** @returns {Promise<boolean>} true if browser is redirecting to Maya checkout */
   const launchPaymaya = async (options = {}) => {
     const manageBusy = options.manageBusy !== false
@@ -920,9 +970,12 @@ const EventRegistrationFlow = () => {
     )
     const storedForEvent = Boolean(eventId && sessionStorage.getItem(paymayaCheckoutStorageKey(eventId)))
 
+    const awaitingCheckout =
+      registrationState?.registration?.payment_status === 'pending_checkout'
+      && registrationState?.registration?.registration_status === 'pending_payment'
+
     const shouldAttemptVerify =
-      typeof checkoutId === 'string'
-      && checkoutId !== ''
+      awaitingCheckout
       && (paymentSuccessHint || checkoutHintInUrl || storedForEvent)
 
     if (!shouldAttemptVerify || verifyOnce.current) return
@@ -934,21 +987,37 @@ const EventRegistrationFlow = () => {
       setBusy(true)
       let verifiedPaid = false
       try {
-        const res = await apiRequest(`/v1/cms/events/${eventId}/registration/paymaya/verify`, {
-          method: 'POST',
-          body: { checkout_id: checkoutId },
-        })
-        if (res.data?.success && res.data?.data?.paid) {
-          verifiedPaid = true
-          notifySuccess(res.data.message || 'Payment verified. Welcome aboard!')
-          setSearchParams({}, { replace: true })
-          navigate(`/challenges/${eventId}`)
+        if (paymentSuccessHint || !checkoutId) {
+          verifiedPaid = await syncPendingPayment({ silent: true })
+        } else {
+          const res = await apiRequest(`/v1/cms/events/${eventId}/registration/paymaya/verify`, {
+            method: 'POST',
+            body: { checkout_id: checkoutId },
+          })
+          if (res.data?.success && res.data?.data?.paid) {
+            verifiedPaid = true
+            notifySuccess(res.data.message || 'Payment verified. Welcome aboard!')
+            setSearchParams({}, { replace: true })
+            navigate(`/challenges/${eventId}`)
+            return
+          }
+          verifiedPaid = await syncPendingPayment({ silent: true })
+        }
 
+        if (verifiedPaid) {
+          setSearchParams({}, { replace: true })
+          notifySuccess('Payment verified. Welcome aboard!')
           return
         }
-        notifyError(res.data?.message || 'Payment is not finalized yet.')
+
+        notifyError('Payment is not finalized yet. Tap “Check payment status” if you already paid.')
         setSearchParams({}, { replace: true })
       } catch (error) {
+        const synced = await syncPendingPayment({ silent: true })
+        if (synced) {
+          setSearchParams({}, { replace: true })
+          return
+        }
         notifyError(error?.response?.data?.message || 'Could not verify payment yet.')
         setSearchParams({}, { replace: true })
       } finally {
@@ -956,7 +1025,7 @@ const EventRegistrationFlow = () => {
         if (!verifiedPaid) verifyOnce.current = false
       }
     })()
-  }, [eventId, navigate, registrationState, searchParams, setSearchParams])
+  }, [eventId, navigate, registrationState, searchParams, setSearchParams, syncPendingPayment])
 
   const currentStepKey = steps[stepIndex]
 

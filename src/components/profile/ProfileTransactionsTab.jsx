@@ -154,7 +154,7 @@ const DetailRow = ({ label, value, mono = false }) => {
   )
 }
 
-const TransactionDetailModal = ({ tx, onOpenEvent }) => {
+const TransactionDetailModal = ({ tx, onOpenEvent, onSyncPayment, syncingPayment }) => {
   const dismiss = useAppModalDismiss()
   const [heroFailed, setHeroFailed] = useState(false)
   const { registrationFee, totalAmount, currency } = resolveTotals(tx)
@@ -294,6 +294,16 @@ const TransactionDetailModal = ({ tx, onOpenEvent }) => {
 
       {tx.event?.id && (
         <div className="profile-tx-modal__footer">
+          {paymentPending ? (
+            <button
+              type="button"
+              className="profile-tx-card__cta is-secondary"
+              disabled={syncingPayment}
+              onClick={() => onSyncPayment?.(tx)}
+            >
+              {syncingPayment ? 'Checking…' : 'Check payment status'}
+            </button>
+          ) : null}
           <button
             type="button"
             className={`profile-tx-card__cta${paymentPending ? ' is-primary' : ''}`}
@@ -347,6 +357,7 @@ const ProfileTransactionsTab = () => {
   const [lastPage, setLastPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [selectedTx, setSelectedTx] = useState(null)
+  const [syncingPayment, setSyncingPayment] = useState(false)
 
   const fetchTransactions = useCallback(async (targetPage = 1, append = false) => {
     if (append) setLoadingMore(true)
@@ -378,6 +389,30 @@ const ProfileTransactionsTab = () => {
       setLoadingMore(false)
     }
   }, [])
+
+  const syncPayment = useCallback(async (tx) => {
+    const eventId = tx?.event?.id
+    if (!eventId) return
+
+    setSyncingPayment(true)
+    try {
+      const res = await apiRequest(`/v1/cms/events/${eventId}/registration/paymaya/sync`, {
+        method: 'POST',
+        body: {},
+      })
+      if (res.data?.success && res.data?.data?.paid) {
+        notifySuccess(res.data.message || 'Payment confirmed!')
+        setSelectedTx(null)
+        await fetchTransactions(1, false)
+        return
+      }
+      notifyError(res.data?.message || 'Payment is not completed yet.')
+    } catch (error) {
+      notifyError(error?.response?.data?.message || 'Could not verify payment.')
+    } finally {
+      setSyncingPayment(false)
+    }
+  }, [fetchTransactions])
 
   useEffect(() => {
     fetchTransactions(1, false)
@@ -465,7 +500,12 @@ const ProfileTransactionsTab = () => {
         panelClassName="profile-tx-modal"
       >
         {selectedTx && (
-          <TransactionDetailModal tx={selectedTx} onOpenEvent={openEvent} />
+          <TransactionDetailModal
+            tx={selectedTx}
+            onOpenEvent={openEvent}
+            onSyncPayment={syncPayment}
+            syncingPayment={syncingPayment}
+          />
         )}
       </AppModalTransition>
     </>
