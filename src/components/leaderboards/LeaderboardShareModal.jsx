@@ -221,6 +221,8 @@ function LeaderboardShareModalBody({
         category: categoryFilter,
         shareCaption: facebookShareCaption,
         imageUrl: cardImageSrc,
+        eventTitle,
+        rank,
       })
       trackShare('facebook')
 
@@ -232,25 +234,25 @@ function LeaderboardShareModalBody({
       }
 
       if (result.ok) {
-        if (result.mode === 'timeline_local_dev_manual') {
+        if (result.method === 'facebook_feed_dialog') {
           notifySuccess(
-            'Caption copied and rank card saved (if available). On Facebook: start a post, paste (Ctrl+V), and add the image.',
+            'Facebook opened with your rank card. Confirm the post — caption is on your clipboard (Ctrl+V).',
+          )
+        } else if (result.mode === 'timeline_local_dev_manual' || result.downloaded) {
+          notifySuccess(
+            'Caption copied and rank card downloaded. On Facebook: create a post, paste (Ctrl+V), and attach the image.',
           )
         } else if (result.copied) {
-          notifySuccess(
-            'Opened Facebook in a new tab. Paste your caption (Ctrl+V). If the preview is empty, paste the link from Copy link into the post.',
-          )
+          notifySuccess('Caption + link copied. Paste into your Facebook post (Ctrl+V).')
         } else {
-          notifySuccess(
-            'Facebook opened in a new tab. Add your caption and confirm — use Copy link if the preview is missing.',
-          )
+          notifySuccess('Facebook opened. Paste your caption (Ctrl+V) to finish the post.')
         }
         return
       }
 
       if (result.reason === 'cancelled') return
 
-      notifyError(result.message || 'Could not open Facebook. Allow pop-ups or use Copy link.')
+      notifyError(result.message || 'Could not open Facebook. Allow pop-ups, then try Copy link.')
     })
 
   const onPlatformShare = (platform, label) =>
@@ -295,6 +297,10 @@ function LeaderboardShareModalBody({
 
         <section className="leaderboard-share-social-panel">
           <h4 className="leaderboard-share-social-title">Share to</h4>
+          <p className="leaderboard-share-fb-steps">
+            Facebook: opens your <strong>rank card</strong> (not the event signup banner). Caption is copied
+            automatically — paste with Ctrl+V if needed.
+          </p>
 
           <div className="leaderboard-share-chips">
             <ShareChip

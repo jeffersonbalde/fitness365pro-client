@@ -6,12 +6,14 @@ import { getClientAppOrigin, getPublicShareOrigin } from './badgeShare'
 import {
   canUseNativeShare,
   copyTextToClipboard,
+  downloadBadgeImage,
+  isPublicShareUrl,
   shareNative,
-  shareToFacebook,
   shareViaPlatform,
 } from './badgeShare'
+import { hasFacebookAppId, isLocalDevelopmentUrl, openFacebookFeedDialog } from './facebookShare'
 
-export { canUseNativeShare, copyTextToClipboard, shareViaPlatform, shareToFacebook }
+export { canUseNativeShare, copyTextToClipboard, shareViaPlatform }
 
 /**
  * Canonical URL for copy / WhatsApp (dedicated leaderboard OG page).
@@ -28,7 +30,7 @@ export const buildLeaderboardShareUrl = ({ eventId, clientId, category = 'all' }
 }
 
 /**
- * Facebook preview URL — /share/event/{eventId}/standing/{clientId} (rank-card OG, not event banner).
+ * Facebook uses /share/event/{eventId}/standing/{clientId} — rank-card OG (not event registration banner).
  */
 export const buildLeaderboardFacebookShareUrl = ({ eventId, clientId, category = 'all' }) => {
   if (!eventId || !clientId) return ''
@@ -41,7 +43,7 @@ export const buildLeaderboardFacebookShareUrl = ({ eventId, clientId, category =
   return base
 }
 
-/** Dynamic OG card image (rank + stats). */
+/** Dynamic OG rank-card image (1200×630 PNG). */
 export const buildLeaderboardShareCardUrl = ({ eventId, clientId, category = 'all' }) => {
   if (!eventId || !clientId) return ''
   const origin = getPublicShareOrigin()
@@ -53,7 +55,6 @@ export const buildLeaderboardShareCardUrl = ({ eventId, clientId, category = 'al
   return base
 }
 
-/** In-app leaderboard route. */
 export const buildLeaderboardClientUrl = (eventId) => {
   if (!eventId) return ''
   const origin = getClientAppOrigin().replace(/\/$/, '')
@@ -129,30 +130,109 @@ export const buildLeaderboardShareCaption = ({
   return `I'm ranked ${place} in "${event}" on Fitness 365 Pro${stats}.`
 }
 
-/** Caption + standing link (for clipboard / non-Facebook channels). */
 export const buildLeaderboardShareCaptionWithLink = (params, standingUrl) => {
   const caption = buildLeaderboardShareCaption(params)
   if (!standingUrl) return caption
   return `${caption}\n${standingUrl}`
 }
 
-/** Facebook: event share path + standing query → rank-card OG image (not plain event banner). */
+export const buildLeaderboardOgTitle = ({ rank, eventTitle }) => {
+  const event = eventTitle?.trim() || 'Fitness 365 Pro'
+  if (rank != null) {
+    return `#${rank} on ${event} — Fitness 365 Pro`
+  }
+  return `${event} — Fitness 365 Pro Leaderboard`
+}
+
+/**
+ * Leaderboard Facebook: Feed Dialog with explicit picture (rank card) — never share_channel popup.
+ */
 export const shareLeaderboardToFacebook = async ({
   eventId,
   clientId,
   category = 'all',
   shareCaption,
   imageUrl,
+  eventTitle,
+  rank,
 }) => {
-  const facebookUrl = buildLeaderboardFacebookShareUrl({ eventId, clientId, category })
+  if (!hasFacebookAppId()) {
+    return {
+      ok: false,
+      reason: 'missing_app_id',
+      opened: false,
+      copied: false,
+      downloaded: false,
+    }
+  }
 
-  return shareToFacebook({
-    shareUrl: facebookUrl,
-    shareCaption,
-    imageUrl,
-    hashtag: null,
-    preCopyCaption: true,
+  const link = buildLeaderboardFacebookShareUrl({ eventId, clientId, category })
+  const picture =
+    imageUrl || buildLeaderboardShareCardUrl({ eventId, clientId, category })
+  const name = buildLeaderboardOgTitle({ rank, eventTitle })
+
+  if (!link) {
+    return { ok: false, reason: 'missing_url', opened: false, copied: false, downloaded: false }
+  }
+
+  const bundle = `${shareCaption}\n\n${link}`
+  let copied = false
+  try {
+    copied = await copyTextToClipboard(bundle)
+  } catch {
+    copied = false
+  }
+
+  if (isLocalDevelopmentUrl(link)) {
+    const downloaded = picture
+      ? await downloadBadgeImage(picture, 'leaderboard-rank.png')
+      : false
+    if (typeof window !== 'undefined') {
+      window.open('https://www.facebook.com/', '_blank', 'noopener,noreferrer')
+    }
+    return {
+      ok: true,
+      method: 'localhost_manual',
+      opened: true,
+      copied,
+      downloaded,
+      mode: 'timeline_local_dev_manual',
+    }
+  }
+
+  const opened = openFacebookFeedDialog({
+    link,
+    picture,
+    name,
+    description: shareCaption,
   })
+
+  if (opened) {
+    return {
+      ok: true,
+      method: 'facebook_feed_dialog',
+      opened: true,
+      copied,
+      downloaded: false,
+      mode: isPublicShareUrl(link) ? 'timeline_with_preview' : 'timeline_local_dev',
+    }
+  }
+
+  const downloaded = picture
+    ? await downloadBadgeImage(picture, 'leaderboard-rank.png')
+    : false
+  if (typeof window !== 'undefined') {
+    window.open('https://www.facebook.com/', '_blank', 'noopener,noreferrer')
+  }
+
+  return {
+    ok: true,
+    method: 'manual_compose',
+    opened: true,
+    copied,
+    downloaded,
+    mode: 'fallback_manual',
+  }
 }
 
 export const shareLeaderboardNative = async ({ eventTitle, shareCaption, shareUrl, imageUrl }) =>

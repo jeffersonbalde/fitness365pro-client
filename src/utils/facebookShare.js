@@ -1,6 +1,6 @@
 /**
- * Facebook Share Dialog — posts a link (with OG preview) to the user's timeline.
- * Requires a Meta App ID: https://developers.facebook.com/apps/
+ * Facebook sharing — Feed Dialog and helpers.
+ * Avoid share_channel popups; they often drop href and show only fitness365pro.com.
  */
 
 const SDK_SCRIPT_ID = 'facebook-jssdk'
@@ -13,7 +13,6 @@ export const getFacebookAppId = () => {
 
 export const hasFacebookAppId = () => Boolean(getFacebookAppId())
 
-/** True for http://localhost or http://127.0.0.1 (Meta Share Dialog is picky on local URLs). */
 export const isLocalDevelopmentUrl = (url) => {
   if (!url) return false
   try {
@@ -25,7 +24,6 @@ export const isLocalDevelopmentUrl = (url) => {
   }
 }
 
-/** OAuth redirect after share — must be whitelisted in Meta (Facebook Login settings). */
 export const getFacebookRedirectUri = (shareUrl) => {
   const frontend = import.meta.env.VITE_FRONTEND_URL
   if (frontend && String(frontend).trim()) {
@@ -41,8 +39,32 @@ export const getFacebookRedirectUri = (shareUrl) => {
 }
 
 /**
- * Full-page Share Dialog URL — avoids share_channel popup that drops the href.
+ * Feed Dialog — passes link + picture + title directly (best for leaderboard rank cards).
  */
+export const buildFacebookFeedDialogUrl = ({ link, picture, name, description }) => {
+  const appId = getFacebookAppId()
+  if (!appId || !link) return ''
+
+  const params = new URLSearchParams({
+    app_id: appId,
+    display: 'page',
+    link,
+    redirect_uri: getFacebookRedirectUri(link),
+  })
+
+  if (picture) params.set('picture', picture)
+  if (name) params.set('name', name)
+  if (description) params.set('description', description)
+
+  return `https://www.facebook.com/dialog/feed?${params.toString()}`
+}
+
+export const openFacebookFeedDialog = ({ link, picture, name, description }) => {
+  const url = buildFacebookFeedDialogUrl({ link, picture, name, description })
+  if (!url || typeof window === 'undefined') return false
+  return Boolean(window.open(url, '_blank', 'noopener,noreferrer'))
+}
+
 export const buildFacebookPageShareUrl = (shareUrl) => {
   const appId = getFacebookAppId()
   if (!appId || !shareUrl) return ''
@@ -57,13 +79,10 @@ export const buildFacebookPageShareUrl = (shareUrl) => {
   return `https://www.facebook.com/dialog/share?${params.toString()}`
 }
 
-/** Opens Share Dialog in a full tab (most reliable for OG link previews). */
 export const openFacebookPageShare = (shareUrl) => {
   const url = buildFacebookPageShareUrl(shareUrl)
   if (!url || typeof window === 'undefined') return false
-
-  const opened = window.open(url, '_blank', 'noopener,noreferrer')
-  return Boolean(opened)
+  return Boolean(window.open(url, '_blank', 'noopener,noreferrer'))
 }
 
 const loadFacebookSdk = () =>
@@ -106,14 +125,11 @@ const loadFacebookSdk = () =>
     script.async = true
     script.defer = true
     script.crossOrigin = 'anonymous'
-    script.src = `https://connect.facebook.net/en_US/sdk.js`
+    script.src = 'https://connect.facebook.net/en_US/sdk.js'
     script.onerror = () => reject(new Error('Failed to load Facebook SDK'))
     document.head.appendChild(script)
   })
 
-/**
- * Opens Meta's official Share Dialog so the user can post to their Facebook timeline.
- */
 export const openFacebookShareDialog = async ({ shareUrl, hashtag = null }) => {
   const appId = getFacebookAppId()
   if (!appId) {
@@ -163,9 +179,6 @@ export const openFacebookShareDialog = async ({ shareUrl, hashtag = null }) => {
   }
 }
 
-/**
- * Fallback share dialog URL (popup) when SDK is unavailable.
- */
 export const buildFacebookDialogShareUrl = ({ shareUrl, hashtag = null }) => {
   const appId = getFacebookAppId()
   if (!appId || !shareUrl) return ''

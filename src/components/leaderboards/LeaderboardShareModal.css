@@ -220,6 +220,26 @@
   color: #94a3b8;
 }
 
+.leaderboard-share-fb-steps {
+  margin: 0 0 12px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--app-text-muted, #64748b);
+}
+
+.leaderboard-share-fb-steps strong {
+  color: var(--app-text, #0f172a);
+  font-weight: 600;
+}
+
+[data-theme='dark'] .leaderboard-share-fb-steps {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .leaderboard-share-fb-steps strong {
+  color: #f1f5f9;
+}
+
 .leaderboard-share-preview-hint,
 .leaderboard-share-preview-warning {
   margin: 0 0 10px;
