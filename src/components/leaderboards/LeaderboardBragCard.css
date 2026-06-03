@@ -1,0 +1,191 @@
+.lb-brag-card {
+  width: 100%;
+  min-width: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: #0f172a;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.15);
+}
+
+/* Full-width event cover */
+.lb-brag-card__banner {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 140px;
+  max-height: 220px;
+  background: #1e293b;
+  overflow: hidden;
+}
+
+.lb-brag-card__banner-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.lb-brag-card__banner-fallback {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, #1e3a5f 0%, #0f172a 100%);
+}
+
+.lb-brag-card__banner-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.05) 0%,
+    rgba(15, 23, 42, 0.35) 55%,
+    rgba(15, 23, 42, 0.75) 100%
+  );
+  pointer-events: none;
+}
+
+.lb-brag-card__rank-pill {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+  font-size: 0.8rem;
+  font-weight: 700;
+  backdrop-filter: blur(6px);
+}
+
+.lb-brag-card__rank-pill--gold {
+  border-color: rgba(251, 191, 36, 0.5);
+  color: #fde68a;
+}
+
+.lb-brag-card__rank-pill-medal {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.lb-brag-card__content {
+  padding: 14px 14px 16px;
+  min-width: 0;
+}
+
+.lb-brag-card__meta-row {
+  margin-bottom: 8px;
+}
+
+.lb-brag-card__brand {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.lb-brag-card__name {
+  margin: 0;
+  font-size: clamp(1rem, 4vw, 1.2rem);
+  font-weight: 800;
+  line-height: 1.2;
+  color: #f8fafc;
+  overflow-wrap: anywhere;
+}
+
+.lb-brag-card__event {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #94a3b8;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.lb-brag-card__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.lb-brag-card__stat {
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.lb-brag-card__stat--done {
+  background: rgba(22, 101, 52, 0.25);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.lb-brag-card__stat--wide {
+  grid-column: 1 / -1;
+}
+
+.lb-brag-card__stat-value {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  line-height: 1.2;
+}
+
+.lb-brag-card__stat-value--sm {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.lb-brag-card__stat-label {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+@media (min-width: 480px) {
+  .lb-brag-card__banner {
+    max-height: 200px;
+  }
+
+  .lb-brag-card__stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .lb-brag-card__stat--wide {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 360px) {
+  .lb-brag-card__banner {
+    min-height: 120px;
+    aspect-ratio: 4 / 3;
+  }
+
+  .lb-brag-card__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .lb-brag-card__stat--wide {
+    grid-column: auto;
+  }
+}

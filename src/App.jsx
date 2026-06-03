@@ -19,6 +19,7 @@ import Communities from './pages/community/Communities.jsx'
 import SuggestedPeople from './pages/social/SuggestedPeople.jsx'
 import Leaderboards from './pages/leaderboards/Leaderboards.jsx'
 import EventLeaderboard from './pages/leaderboards/EventLeaderboard.jsx'
+import SharedLeaderboardPage from './pages/leaderboards/SharedLeaderboardPage.jsx'
 import Challenges from './pages/challenges/Challenges.jsx'
 import EventDetails from './pages/challenges/EventDetails.jsx'
 import EventRegistrationFlow from './pages/challenges/EventRegistrationFlow.jsx'
@@ -57,6 +58,7 @@ const App = () => {
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/:clientId" element={<UserProfile />} />
         <Route path="/badge/:clientId/:eventId/:badgeKey" element={<SharedBadgePage />} />
+        <Route path="/leaderboard/:eventId/:clientId" element={<SharedLeaderboardPage />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/workout" element={<Workout />} />
         <Route path="/communities" element={<Communities />} />

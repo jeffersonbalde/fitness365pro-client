@@ -1,0 +1,259 @@
+.leaderboard-share-modal-backdrop {
+  align-items: center;
+  justify-content: center;
+  padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
+    max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+}
+
+/* Leaderboard share modal — responsive on mobile and desktop */
+.leaderboard-share-modal.badge-share-modal,
+.leaderboard-share-modal.profile-social-modal {
+  width: 100%;
+  max-width: min(480px, calc(100vw - 20px));
+  max-height: min(92dvh, calc(100dvh - 20px));
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.leaderboard-share-modal .badge-share-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0 14px 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.leaderboard-share-modal-head {
+  flex-shrink: 0;
+  padding: 12px 14px;
+  background: var(--app-surface, #fff);
+  border-bottom: 1px solid var(--app-border, #e5e7eb);
+}
+
+.leaderboard-share-modal-head .profile-social-modal-title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.leaderboard-share-preview-section {
+  padding: 12px 0 4px;
+  min-width: 0;
+}
+
+.leaderboard-share-preview-label {
+  margin-bottom: 10px;
+}
+
+.leaderboard-share-preview-label span {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--app-text-muted, #64748b);
+}
+
+.leaderboard-share-social-panel {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid var(--app-border, #e2e8f0);
+  min-width: 0;
+}
+
+.leaderboard-share-social-title {
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--app-text, #0f172a);
+}
+
+.leaderboard-share-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 10px;
+  justify-items: center;
+}
+
+.lb-share-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 88px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.lb-share-chip:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.lb-share-chip:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.lb-share-chip__icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.lb-share-chip__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.lb-share-chip__label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--app-text, #334155);
+  text-align: center;
+}
+
+.lb-share-chip--facebook .lb-share-chip__icon {
+  background: #1877f2;
+}
+
+.lb-share-chip--twitter .lb-share-chip__icon {
+  background: #0f172a;
+}
+
+.lb-share-chip--whatsapp .lb-share-chip__icon {
+  background: #25d366;
+}
+
+.lb-share-chip--linkedin .lb-share-chip__icon {
+  background: #0a66c2;
+}
+
+.lb-share-chip--native .lb-share-chip__icon {
+  background: #475569;
+}
+
+.leaderboard-share-util-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.leaderboard-share-util-btn {
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--app-border, #e2e8f0);
+  background: var(--app-surface, #fff);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--app-text, #0f172a);
+  cursor: pointer;
+}
+
+.leaderboard-share-util-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.leaderboard-share-util-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.leaderboard-share-util-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+[data-theme='dark'] .leaderboard-share-modal-head {
+  background: var(--app-surface, #151821);
+  border-bottom-color: #2b3140;
+}
+
+[data-theme='dark'] .leaderboard-share-social-panel {
+  background: #1a1f2b;
+  border-color: #334155;
+}
+
+[data-theme='dark'] .leaderboard-share-social-title {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .leaderboard-share-util-btn {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .leaderboard-share-util-btn:hover:not(:disabled) {
+  background: #334155;
+  border-color: #64748b;
+  color: #ffffff;
+}
+
+[data-theme='dark'] .leaderboard-share-util-btn:focus-visible {
+  outline-color: #60a5fa;
+}
+
+[data-theme='dark'] .lb-share-chip:hover:not(:disabled) .lb-share-chip__label {
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .lb-share-chip__label {
+  color: #cbd5e1;
+}
+
+[data-theme='dark'] .leaderboard-share-preview-label span {
+  color: #94a3b8;
+}
+
+@media (max-width: 400px) {
+  .leaderboard-share-modal.badge-share-modal,
+  .leaderboard-share-modal.profile-social-modal {
+    max-width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+    border-radius: 12px;
+  }
+
+  .leaderboard-share-modal .badge-share-modal-body {
+    padding: 0 12px 14px;
+  }
+
+  .leaderboard-share-chips {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .lb-share-chip {
+    max-width: none;
+  }
+
+  .lb-share-chip__icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .leaderboard-share-util-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 768px) {
+  .leaderboard-share-modal.badge-share-modal,
+  .leaderboard-share-modal.profile-social-modal {
+    max-width: 440px;
+  }
+}

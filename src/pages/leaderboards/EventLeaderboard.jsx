@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { apiRequest } from '../../utils/api'
 import { AppLoadingState } from '../../components/AppLoadingState.jsx'
+import LeaderboardShareModal from '../../components/leaderboards/LeaderboardShareModal.jsx'
 import './Leaderboards.css'
 
 const API_BASE_URL = import.meta.env.VITE_LARAVEL_API || 'http://localhost:8000/api'
@@ -59,6 +60,7 @@ const EventLeaderboard = () => {
   const [totalResults, setTotalResults] = useState(0)
   const [viewerRank, setViewerRank] = useState(null)
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [shareOpen, setShareOpen] = useState(false)
 
   const loadLeaderboard = useCallback(async (category = 'all', { background = false } = {}) => {
     const requestId = ++requestIdRef.current
@@ -175,6 +177,25 @@ const EventLeaderboard = () => {
                   : 'Rankings update as participants log approved progress.'}
               </p>
             </div>
+            {viewerRank && (
+              <button
+                type="button"
+                className="leaderboard-share-btn"
+                onClick={() => setShareOpen(true)}
+                aria-label="Share your leaderboard standing"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path
+                    d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v14"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                Share
+              </button>
+            )}
           </div>
 
           {showCategoryFilter && !initialLoading && !loadError && (
@@ -222,7 +243,26 @@ const EventLeaderboard = () => {
 
                   {viewerRank && (
                     <div className="leaderboard-viewer-card">
-                      <div className="leaderboard-viewer-rank">Your rank: #{viewerRank.rank}</div>
+                      <div className="leaderboard-viewer-card-top">
+                        <div className="leaderboard-viewer-rank">Your rank: #{viewerRank.rank}</div>
+                        <button
+                          type="button"
+                          className="leaderboard-share-btn leaderboard-share-btn--compact"
+                          onClick={() => setShareOpen(true)}
+                          aria-label="Share your leaderboard standing"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                            <path
+                              d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v14"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          Share
+                        </button>
+                      </div>
                       <div className="leaderboard-viewer-meta">
                         {formatKm(viewerRank.progress?.logged_distance_km)} logged
                         {viewerRank.progress?.goal_distance_km != null
@@ -332,6 +372,21 @@ const EventLeaderboard = () => {
           )}
         </div>
       </main>
+
+      <LeaderboardShareModal
+        open={shareOpen}
+        onRequestClose={() => setShareOpen(false)}
+        eventTitle={eventMeta?.title}
+        eventId={eventId}
+        clientId={viewerRank?.user?.id}
+        ownerName={viewerRank?.user?.display_name}
+        rank={viewerRank?.rank}
+        progress={viewerRank?.progress}
+        categoryLabel={viewerRank?.category_label}
+        categoryFilter={categoryFilter}
+        eventImageUrl={eventMeta?.image_url}
+        resolveMediaUrl={resolveMediaUrl}
+      />
     </div>
   )
 }
