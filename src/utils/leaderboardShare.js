@@ -2,7 +2,6 @@
  * Share links and captions for event leaderboard standings.
  */
 
-import { getApiBaseUrl } from './apiBaseUrl'
 import { getClientAppOrigin, getPublicShareOrigin } from './badgeShare'
 import {
   canUseNativeShare,
@@ -116,51 +115,7 @@ export const buildLeaderboardShareCaption = ({
   return `I'm ranked ${place} in "${event}" on Fitness 365 Pro${stats}.`
 }
 
-/** True when the URL points at Laravel OG HTML on the API host, not the React SPA. */
-export const isLeaderboardShareOgUrl = (shareUrl) => {
-  if (!shareUrl) return false
-  try {
-    const url = new URL(shareUrl)
-    const expected = new URL(getPublicShareOrigin())
-    if (url.origin !== expected.origin) return false
-    return url.pathname.includes('/share/leaderboard/')
-  } catch {
-    return false
-  }
-}
-
-/** Confirms the server will return OG tags for this standing (Facebook preview). */
-export const verifyLeaderboardShareReady = async ({ eventId, clientId, category = 'all' }) => {
-  if (!eventId || !clientId) {
-    return { ok: false, message: 'Missing event or profile.' }
-  }
-
-  const base = getApiBaseUrl().replace(/\/$/, '')
-  const params = new URLSearchParams()
-  if (category && category !== 'all') {
-    params.set('category', category)
-  }
-  const qs = params.toString() ? `?${params.toString()}` : ''
-
-  try {
-    const res = await fetch(
-      `${base}/v1/public/leaderboard/${encodeURIComponent(String(eventId))}/${encodeURIComponent(String(clientId))}${qs}`,
-    )
-    const json = await res.json().catch(() => ({}))
-    if (res.ok && json?.success) {
-      return { ok: true }
-    }
-    return {
-      ok: false,
-      message:
-        json?.message ||
-        'Server could not build a share preview. Redeploy the API and set APP_URL / SHARE_URL on the server.',
-    }
-  } catch {
-    return { ok: false, message: 'Could not reach the server to verify the share preview.' }
-  }
-}
-
+/** Same Facebook Share Dialog flow as event sharing (server OG page at /share/leaderboard/...). */
 export const shareLeaderboardToFacebook = async ({ shareUrl, shareCaption, imageUrl }) =>
   shareToFacebook({
     shareUrl,
@@ -168,7 +123,6 @@ export const shareLeaderboardToFacebook = async ({ shareUrl, shareCaption, image
     imageUrl,
     hashtag: null,
     preCopyCaption: true,
-    preferDialogPopup: true,
   })
 
 export const shareLeaderboardNative = async ({ eventTitle, shareCaption, shareUrl, imageUrl }) =>

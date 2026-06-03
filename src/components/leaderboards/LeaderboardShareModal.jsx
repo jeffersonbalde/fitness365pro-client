@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import AppModalTransition, { useAppModalDismiss } from '../AppModalTransition.jsx'
 import LeaderboardBragCard from './LeaderboardBragCard.jsx'
 import { notifyError, notifySuccess } from '../../utils/notifications'
@@ -10,11 +10,9 @@ import {
   buildLeaderboardShareUrl,
   canUseNativeShare,
   copyTextToClipboard,
-  isLeaderboardShareOgUrl,
   shareLeaderboardNative,
   shareLeaderboardToFacebook,
   shareViaPlatform,
-  verifyLeaderboardShareReady,
 } from '../../utils/leaderboardShare'
 import '../profile/BadgeShareModal.css'
 import './LeaderboardShareModal.css'
@@ -50,7 +48,6 @@ function LeaderboardShareModalBody({
 }) {
   const dismiss = useAppModalDismiss()
   const [busyKey, setBusyKey] = useState('')
-  const [previewStatus, setPreviewStatus] = useState({ state: 'checking', message: '' })
 
   const cardImageSrc = useMemo(
     () =>
@@ -71,38 +68,6 @@ function LeaderboardShareModalBody({
       }),
     [eventId, clientId, categoryFilter],
   )
-
-  useEffect(() => {
-    let cancelled = false
-    setPreviewStatus({ state: 'checking', message: '' })
-
-    if (!isLeaderboardShareOgUrl(shareUrl)) {
-      setPreviewStatus({
-        state: 'error',
-        message:
-          'Share link points at the website app, not the API. Set VITE_LARAVEL_API to https://fitness365pro.com/fitness365pro-server/api and rebuild.',
-      })
-      return () => {
-        cancelled = true
-      }
-    }
-
-    verifyLeaderboardShareReady({ eventId, clientId, category: categoryFilter }).then((result) => {
-      if (cancelled) return
-      if (result.ok) {
-        setPreviewStatus({ state: 'ready', message: '' })
-        return
-      }
-      setPreviewStatus({
-        state: 'error',
-        message: result.message || 'Facebook cannot load a preview for this link.',
-      })
-    })
-
-    return () => {
-      cancelled = true
-    }
-  }, [shareUrl, eventId, clientId, categoryFilter])
 
   const loggedKm = progress?.logged_distance_km
   const progressPercent = progress?.progress_percent
@@ -210,24 +175,11 @@ function LeaderboardShareModalBody({
 
   const onFacebookShare = () =>
     runShare('facebook', async () => {
-      if (!isLeaderboardShareOgUrl(shareUrl)) {
+      if (shareUrl && !shareUrl.includes('/share/leaderboard/')) {
         notifyError(
-          'Share link is misconfigured. Set VITE_LARAVEL_API to your server URL (e.g. …/fitness365pro-server/api), rebuild the client, then try again.',
+          'Share preview is misconfigured. Set VITE_LARAVEL_API to your Laravel API URL, rebuild the client, then try again.',
         )
         return
-      }
-
-      if (previewStatus.state === 'error') {
-        notifyError(previewStatus.message)
-        return
-      }
-
-      if (previewStatus.state === 'checking') {
-        const check = await verifyLeaderboardShareReady({ eventId, clientId, category: categoryFilter })
-        if (!check.ok) {
-          notifyError(check.message || 'Share preview is not ready yet.')
-          return
-        }
       }
 
       const result = await shareLeaderboardToFacebook({
@@ -238,24 +190,30 @@ function LeaderboardShareModalBody({
       trackShare('facebook')
 
       if (result.reason === 'missing_app_id') {
-        notifyError('Facebook sharing needs VITE_FACEBOOK_APP_ID. Rebuild after setting it.')
+        notifyError(
+          'Facebook sharing needs VITE_FACEBOOK_APP_ID in client/.env. Rebuild the app after setting it.',
+        )
         return
       }
 
       if (result.ok) {
-        if (result.copied) {
+        if (result.mode === 'timeline_local_dev_manual') {
           notifySuccess(
-            'Caption copied. In Facebook, paste (Ctrl+V) to add your message — the image preview comes from the server link.',
+            'Caption copied and rank card saved (if available). On Facebook: start a post, paste (Ctrl+V), and add the image.',
+          )
+        } else if (result.copied) {
+          notifySuccess(
+            'Caption copied — paste (Ctrl+V) in Facebook. Confirm the post to publish your rank preview.',
           )
         } else {
-          notifySuccess('Facebook share opened. The preview loads from your server share link.')
+          notifySuccess('Facebook share opened! Confirm the post to publish.')
         }
         return
       }
 
       if (result.reason === 'cancelled') return
 
-      notifyError(result.message || 'Could not open Facebook. Allow pop-ups or copy the link.')
+      notifyError(result.message || 'Could not open Facebook. Allow pop-ups or use Copy link.')
     })
 
   const onPlatformShare = (platform, label) =>
@@ -300,19 +258,6 @@ function LeaderboardShareModalBody({
 
         <section className="leaderboard-share-social-panel">
           <h4 className="leaderboard-share-social-title">Share to</h4>
-
-          {previewStatus.state === 'error' ? (
-            <p className="leaderboard-share-preview-warning" role="alert">
-              {previewStatus.message}
-            </p>
-          ) : previewStatus.state === 'checking' ? (
-            <p className="leaderboard-share-preview-warning is-muted">Checking Facebook preview…</p>
-          ) : (
-            <p className="leaderboard-share-preview-hint">
-              Caption copies when you tap Facebook — paste it in the post. Preview image loads from the server
-              link below.
-            </p>
-          )}
 
           <div className="leaderboard-share-chips">
             <ShareChip
@@ -374,11 +319,6 @@ function LeaderboardShareModalBody({
                 }
               />
             ) : null}
-          </div>
-
-          <div className="leaderboard-share-link-preview" title={shareUrl}>
-            <span className="leaderboard-share-link-preview__label">Facebook crawls</span>
-            <code className="leaderboard-share-link-preview__url">{shareUrl}</code>
           </div>
 
           <div className="leaderboard-share-util-row">
