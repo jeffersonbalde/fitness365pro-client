@@ -27,23 +27,27 @@ export const getApiShareOrigin = () => normalizeOrigin(API_BASE_URL.replace(/\/a
  */
 export const getPublicShareOrigin = () => {
   const apiOrigin = getApiShareOrigin()
-  const configured = normalizeOrigin(import.meta.env.VITE_PUBLIC_APP_URL)
-  const frontendEnv = normalizeOrigin(import.meta.env.VITE_FRONTEND_URL)
-  const windowOrigin =
-    typeof window !== 'undefined' && window.location?.origin
-      ? normalizeOrigin(window.location.origin)
-      : ''
-  const frontendOrigin = frontendEnv || windowOrigin
 
+  // OG pages (/share/*) are served only by Laravel — always prefer the API host from VITE_LARAVEL_API.
+  if (apiOrigin) {
+    return apiOrigin
+  }
+
+  const configured = normalizeOrigin(import.meta.env.VITE_PUBLIC_APP_URL)
   if (configured) {
-    // Common misconfig: VITE_PUBLIC_APP_URL = SPA domain while API is on another host/path.
-    if (frontendOrigin && configured === frontendOrigin && apiOrigin && apiOrigin !== configured) {
-      return apiOrigin
-    }
     return configured
   }
 
-  return apiOrigin
+  const frontendEnv = normalizeOrigin(import.meta.env.VITE_FRONTEND_URL)
+  if (frontendEnv) {
+    return frontendEnv
+  }
+
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return normalizeOrigin(window.location.origin)
+  }
+
+  return ''
 }
 
 /** Client SPA origin for in-app navigation. */
@@ -152,7 +156,21 @@ export const shareViaPlatform = (platform, { shareUrl, shareText }) => {
  * Share badge to the user's Facebook timeline via Meta Share Dialog.
  * Uses server OG page so Facebook shows badge image + achievement text in the post preview.
  */
-export const shareToFacebook = async ({ shareUrl, shareCaption, imageUrl }) => {
+/**
+ * @param {object} options
+ * @param {string} options.shareUrl Laravel /share/* URL (Facebook crawls OG tags here)
+ * @param {string} [options.shareCaption] Copied to clipboard before dialog (Meta cannot pre-fill post text)
+ * @param {string} [options.imageUrl] Optional image for localhost manual fallback
+ * @param {string|null} [options.hashtag] Optional hashtag in dialog; omit for leaderboard posts
+ * @param {boolean} [options.preCopyCaption] Copy caption before opening Facebook (default true when caption set)
+ */
+export const shareToFacebook = async ({
+  shareUrl,
+  shareCaption,
+  imageUrl,
+  hashtag = '#Fitness365Pro',
+  preCopyCaption = true,
+}) => {
   if (!hasFacebookAppId()) {
     return {
       ok: false,
@@ -168,11 +186,15 @@ export const shareToFacebook = async ({ shareUrl, shareCaption, imageUrl }) => {
   }
 
   const localDev = isLocalDevelopmentUrl(shareUrl)
+  const shouldPreCopy = preCopyCaption && Boolean(shareCaption)
+  let copied = false
+
+  if (shouldPreCopy) {
+    copied = await copyTextToClipboard(shareCaption)
+  }
 
   // Facebook's crawlers cannot read http://localhost — link previews and badge images will not appear.
-  // Prepare caption + image for a manual post instead of opening an empty composer.
   if (localDev) {
-    const copied = shareCaption ? await copyTextToClipboard(shareCaption) : false
     const downloaded = imageUrl ? await downloadBadgeImage(imageUrl) : false
     const opened = openExternalUrl('https://www.facebook.com/')
 
@@ -188,7 +210,7 @@ export const shareToFacebook = async ({ shareUrl, shareCaption, imageUrl }) => {
 
   const sdkResult = await openFacebookShareDialog({
     shareUrl,
-    hashtag: '#Fitness365Pro',
+    hashtag,
   })
 
   if (sdkResult.ok) {
@@ -196,29 +218,31 @@ export const shareToFacebook = async ({ shareUrl, shareCaption, imageUrl }) => {
       ok: true,
       method: 'facebook_share_dialog',
       opened: true,
-      copied: false,
+      copied,
       downloaded: false,
       mode: isPublicShareUrl(shareUrl) ? 'timeline_with_preview' : 'timeline_local_dev',
     }
   }
 
   if (sdkResult.reason === 'cancelled') {
-    return { ok: false, reason: 'cancelled', opened: false, copied: false, downloaded: false }
+    return { ok: false, reason: 'cancelled', opened: false, copied, downloaded: false }
   }
 
-  const popupOpened = openFacebookDialogSharePopup({ shareUrl, hashtag: '#Fitness365Pro' })
+  const popupOpened = openFacebookDialogSharePopup({ shareUrl, hashtag })
   if (popupOpened) {
     return {
       ok: true,
       method: 'facebook_dialog_popup',
       opened: true,
-      copied: false,
+      copied,
       downloaded: false,
       mode: isPublicShareUrl(shareUrl) ? 'timeline_with_preview' : 'timeline_local_dev',
     }
   }
 
-  const copied = shareCaption ? await copyTextToClipboard(shareCaption) : false
+  if (!copied && shareCaption) {
+    copied = await copyTextToClipboard(shareCaption)
+  }
   const downloaded = imageUrl ? await downloadBadgeImage(imageUrl) : false
 
   return {

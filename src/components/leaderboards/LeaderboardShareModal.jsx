@@ -10,6 +10,7 @@ import {
   buildLeaderboardShareUrl,
   canUseNativeShare,
   copyTextToClipboard,
+  isLeaderboardShareOgUrl,
   shareLeaderboardNative,
   shareLeaderboardToFacebook,
   shareViaPlatform,
@@ -175,9 +176,9 @@ function LeaderboardShareModalBody({
 
   const onFacebookShare = () =>
     runShare('facebook', async () => {
-      if (shareUrl && !shareUrl.includes('/share/leaderboard/')) {
+      if (!isLeaderboardShareOgUrl(shareUrl)) {
         notifyError(
-          'Share preview is misconfigured. Set VITE_LARAVEL_API to your Laravel API URL, rebuild, then try again.',
+          'Share link is misconfigured. Set VITE_LARAVEL_API to your server URL (e.g. …/fitness365pro-server/api), rebuild the client, then try again.',
         )
         return
       }
@@ -195,7 +196,13 @@ function LeaderboardShareModalBody({
       }
 
       if (result.ok) {
-        notifySuccess('Facebook share opened!')
+        if (result.copied) {
+          notifySuccess(
+            'Caption copied. In Facebook, paste (Ctrl+V) to add your message — the image preview comes from the server link.',
+          )
+        } else {
+          notifySuccess('Facebook share opened. The preview loads from your server share link.')
+        }
         return
       }
 

@@ -88,7 +88,7 @@ const loadFacebookSdk = () =>
 /**
  * Opens Meta's official Share Dialog so the user can post to their Facebook timeline.
  */
-export const openFacebookShareDialog = async ({ shareUrl, hashtag = '#Fitness365Pro' }) => {
+export const openFacebookShareDialog = async ({ shareUrl, hashtag = null }) => {
   const appId = getFacebookAppId()
   if (!appId) {
     return { ok: false, reason: 'missing_app_id' }
@@ -98,16 +98,22 @@ export const openFacebookShareDialog = async ({ shareUrl, hashtag = '#Fitness365
     return { ok: false, reason: 'missing_url' }
   }
 
+  const dialogParams = {
+    method: 'share',
+    href: shareUrl,
+  }
+
+  if (hashtag && String(hashtag).trim()) {
+    const tag = String(hashtag).trim()
+    dialogParams.hashtag = tag.startsWith('#') ? tag : `#${tag}`
+  }
+
   try {
     const FB = await loadFacebookSdk()
 
     return await new Promise((resolve) => {
       FB.ui(
-        {
-          method: 'share',
-          href: shareUrl,
-          hashtag: hashtag.startsWith('#') ? hashtag : `#${hashtag}`,
-        },
+        dialogParams,
         (response) => {
           if (!response || response.error_message) {
             resolve({
@@ -134,7 +140,7 @@ export const openFacebookShareDialog = async ({ shareUrl, hashtag = '#Fitness365
 /**
  * Fallback share dialog URL (popup) when SDK is unavailable.
  */
-export const buildFacebookDialogShareUrl = ({ shareUrl, hashtag = '#Fitness365Pro' }) => {
+export const buildFacebookDialogShareUrl = ({ shareUrl, hashtag = null }) => {
   const appId = getFacebookAppId()
   if (!appId || !shareUrl) return ''
 
@@ -143,8 +149,12 @@ export const buildFacebookDialogShareUrl = ({ shareUrl, hashtag = '#Fitness365Pr
     display: 'popup',
     href: shareUrl,
     redirect_uri: getFacebookRedirectUri(shareUrl),
-    hashtag: hashtag.startsWith('#') ? hashtag : `#${hashtag}`,
   })
+
+  if (hashtag && String(hashtag).trim()) {
+    const tag = String(hashtag).trim()
+    params.set('hashtag', tag.startsWith('#') ? tag : `#${tag}`)
+  }
 
   return `https://www.facebook.com/dialog/share?${params.toString()}`
 }

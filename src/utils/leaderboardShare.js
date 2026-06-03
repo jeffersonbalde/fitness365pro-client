@@ -94,24 +94,46 @@ export const buildLeaderboardShareCaption = ({
   categoryLabel,
 }) => {
   const who = ownerName?.trim() || 'I'
-  const event = eventTitle?.trim() || 'a challenge'
-  const place = rank != null ? `#${rank}` : 'on the board'
+  const event = eventTitle?.trim() || 'this event'
+  const place = rank != null ? `#${rank}` : 'on the leaderboard'
+
   const progressBits = []
-  if (loggedKm != null) progressBits.push(formatKm(loggedKm))
+  if (loggedKm != null) progressBits.push(`${formatKm(loggedKm)} logged`)
   if (goalCompleted) {
-    progressBits.push('goal done')
+    progressBits.push('goal completed')
   } else if (progressPercent != null) {
-    progressBits.push(`${Number(progressPercent).toLocaleString(undefined, { maximumFractionDigits: 1 })}%`)
+    progressBits.push(
+      `${Number(progressPercent).toLocaleString(undefined, { maximumFractionDigits: 1 })}% of goal`,
+    )
   }
   if (categoryLabel && categoryLabel !== 'General') {
     progressBits.push(categoryLabel)
   }
-  const stats = progressBits.length ? ` — ${progressBits.join(' · ')}` : ''
-  return `${who} is ${place} on "${event}"${stats}! #Fitness365Pro #Leaderboard`
+
+  const stats = progressBits.length ? ` (${progressBits.join(' · ')})` : ''
+
+  return `I'm ranked ${place} in "${event}" on Fitness 365 Pro${stats}.`
+}
+
+/** True when the URL points at Laravel OG HTML, not the React SPA. */
+export const isLeaderboardShareOgUrl = (shareUrl) => {
+  if (!shareUrl) return false
+  try {
+    const path = new URL(shareUrl).pathname
+    return path.includes('/share/leaderboard/')
+  } catch {
+    return shareUrl.includes('/share/leaderboard/')
+  }
 }
 
 export const shareLeaderboardToFacebook = async ({ shareUrl, shareCaption, imageUrl }) =>
-  shareToFacebook({ shareUrl, shareCaption, imageUrl })
+  shareToFacebook({
+    shareUrl,
+    shareCaption,
+    imageUrl,
+    hashtag: null,
+    preCopyCaption: true,
+  })
 
 export const shareLeaderboardNative = async ({ eventTitle, shareCaption, shareUrl, imageUrl }) =>
   shareNative({
