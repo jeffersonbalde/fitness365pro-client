@@ -163,6 +163,7 @@ export const shareViaPlatform = (platform, { shareUrl, shareText }) => {
  * @param {string} [options.imageUrl] Optional image for localhost manual fallback
  * @param {string|null} [options.hashtag] Optional hashtag in dialog; omit for leaderboard posts
  * @param {boolean} [options.preCopyCaption] Copy caption before opening Facebook (default true when caption set)
+ * @param {boolean} [options.preferDialogPopup] Open dialog/share popup before SDK (better OG previews)
  */
 export const shareToFacebook = async ({
   shareUrl,
@@ -170,6 +171,7 @@ export const shareToFacebook = async ({
   imageUrl,
   hashtag = '#Fitness365Pro',
   preCopyCaption = true,
+  preferDialogPopup = false,
 }) => {
   if (!hasFacebookAppId()) {
     return {
@@ -205,6 +207,20 @@ export const shareToFacebook = async ({
       copied,
       downloaded,
       mode: 'timeline_local_dev_manual',
+    }
+  }
+
+  if (preferDialogPopup) {
+    const popupFirst = openFacebookDialogSharePopup({ shareUrl, hashtag })
+    if (popupFirst) {
+      return {
+        ok: true,
+        method: 'facebook_dialog_popup',
+        opened: true,
+        copied,
+        downloaded: false,
+        mode: isPublicShareUrl(shareUrl) ? 'timeline_with_preview' : 'timeline_local_dev',
+      }
     }
   }
 
