@@ -220,6 +220,11 @@
   color: #94a3b8;
 }
 
+.leaderboard-share-export-target {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
 .leaderboard-share-fb-steps {
   margin: 0 0 12px;
   font-size: 0.78rem;

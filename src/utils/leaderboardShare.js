@@ -6,12 +6,14 @@ import { getClientAppOrigin, getPublicShareOrigin } from './badgeShare'
 import {
   canUseNativeShare,
   copyTextToClipboard,
-  downloadBadgeImage,
-  isPublicShareUrl,
   shareNative,
   shareViaPlatform,
 } from './badgeShare'
-import { hasFacebookAppId, isLocalDevelopmentUrl, openFacebookFeedDialog } from './facebookShare'
+import {
+  downloadBlob,
+  exportLeaderboardCardBlob,
+  openFacebookHome,
+} from './leaderboardCardExport'
 
 export { canUseNativeShare, copyTextToClipboard, shareViaPlatform }
 
@@ -145,93 +147,61 @@ export const buildLeaderboardOgTitle = ({ rank, eventTitle }) => {
 }
 
 /**
- * Leaderboard Facebook: Feed Dialog with explicit picture (rank card) — never share_channel popup.
+ * Facebook: save rank-card PNG + open Facebook (photo post — same big image as Events preview).
+ * Meta link-share popups ignore our URL; uploading the card image always works.
  */
-export const shareLeaderboardToFacebook = async ({
-  eventId,
-  clientId,
-  category = 'all',
-  shareCaption,
-  imageUrl,
-  eventTitle,
-  rank,
-}) => {
-  if (!hasFacebookAppId()) {
+export const shareLeaderboardToFacebook = async ({ cardElement, shareCaption, rank, shareUrl }) => {
+  const blob = await exportLeaderboardCardBlob(cardElement)
+  if (!blob) {
     return {
       ok: false,
-      reason: 'missing_app_id',
+      reason: 'export_failed',
       opened: false,
       copied: false,
       downloaded: false,
+      message: 'Could not prepare rank card image. Try again or use Copy link.',
     }
   }
 
-  const link = buildLeaderboardFacebookShareUrl({ eventId, clientId, category })
-  const picture =
-    imageUrl || buildLeaderboardShareCardUrl({ eventId, clientId, category })
-  const name = buildLeaderboardOgTitle({ rank, eventTitle })
+  const captionLines = [shareCaption]
+  if (shareUrl) captionLines.push(shareUrl)
+  const copied = await copyTextToClipboard(captionLines.filter(Boolean).join('\n\n'))
 
-  if (!link) {
-    return { ok: false, reason: 'missing_url', opened: false, copied: false, downloaded: false }
-  }
+  const filename =
+    rank != null ? `fitness365-rank-${rank}.png` : 'fitness365-leaderboard-rank.png'
+  const downloaded = downloadBlob(blob, filename)
 
-  const bundle = `${shareCaption}\n\n${link}`
-  let copied = false
-  try {
-    copied = await copyTextToClipboard(bundle)
-  } catch {
-    copied = false
-  }
-
-  if (isLocalDevelopmentUrl(link)) {
-    const downloaded = picture
-      ? await downloadBadgeImage(picture, 'leaderboard-rank.png')
-      : false
-    if (typeof window !== 'undefined') {
-      window.open('https://www.facebook.com/', '_blank', 'noopener,noreferrer')
-    }
-    return {
-      ok: true,
-      method: 'localhost_manual',
-      opened: true,
-      copied,
-      downloaded,
-      mode: 'timeline_local_dev_manual',
+  if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare) {
+    try {
+      const file = new File([blob], filename, { type: 'image/png' })
+      const withFile = { text: shareCaption, files: [file] }
+      if (navigator.canShare(withFile)) {
+        await navigator.share(withFile)
+        return {
+          ok: true,
+          method: 'native_photo',
+          opened: true,
+          copied,
+          downloaded,
+          mode: 'native_photo',
+        }
+      }
+    } catch (err) {
+      if (err?.name === 'AbortError') {
+        return { ok: false, reason: 'cancelled', opened: false, copied, downloaded }
+      }
     }
   }
 
-  const opened = openFacebookFeedDialog({
-    link,
-    picture,
-    name,
-    description: shareCaption,
-  })
-
-  if (opened) {
-    return {
-      ok: true,
-      method: 'facebook_feed_dialog',
-      opened: true,
-      copied,
-      downloaded: false,
-      mode: isPublicShareUrl(link) ? 'timeline_with_preview' : 'timeline_local_dev',
-    }
-  }
-
-  const downloaded = picture
-    ? await downloadBadgeImage(picture, 'leaderboard-rank.png')
-    : false
-  if (typeof window !== 'undefined') {
-    window.open('https://www.facebook.com/', '_blank', 'noopener,noreferrer')
-  }
+  const opened = openFacebookHome()
 
   return {
     ok: true,
-    method: 'manual_compose',
-    opened: true,
+    method: 'photo_upload',
+    opened,
     copied,
     downloaded,
-    mode: 'fallback_manual',
+    mode: 'photo_post',
   }
 }
 

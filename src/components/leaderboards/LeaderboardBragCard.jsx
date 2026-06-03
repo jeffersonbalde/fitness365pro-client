@@ -38,7 +38,12 @@ export default function LeaderboardBragCard({
     <div className={`lb-brag-card lb-brag-card--${meta.tier}`}>
       <div className="lb-brag-card__banner">
         {coverSrc ? (
-          <img className="lb-brag-card__banner-img" src={coverSrc} alt="" />
+          <img
+            className="lb-brag-card__banner-img"
+            src={coverSrc}
+            alt=""
+            crossOrigin="anonymous"
+          />
         ) : (
           <div className="lb-brag-card__banner-fallback" aria-hidden />
         )}

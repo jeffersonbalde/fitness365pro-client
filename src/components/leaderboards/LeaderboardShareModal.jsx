@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import AppModalTransition, { useAppModalDismiss } from '../AppModalTransition.jsx'
 import LeaderboardBragCard from './LeaderboardBragCard.jsx'
 import { notifyError, notifySuccess } from '../../utils/notifications'
@@ -10,8 +10,6 @@ import {
   buildLeaderboardShareUrl,
   canUseNativeShare,
   copyTextToClipboard,
-  buildLeaderboardFacebookShareUrl,
-  buildLeaderboardShareCaptionWithLink,
   shareLeaderboardNative,
   shareLeaderboardToFacebook,
   shareViaPlatform,
@@ -50,6 +48,7 @@ function LeaderboardShareModalBody({
 }) {
   const dismiss = useAppModalDismiss()
   const [busyKey, setBusyKey] = useState('')
+  const cardExportRef = useRef(null)
 
   const cardImageSrc = useMemo(
     () =>
@@ -68,11 +67,6 @@ function LeaderboardShareModalBody({
         clientId,
         category: categoryFilter,
       }),
-    [eventId, clientId, categoryFilter],
-  )
-
-  const facebookShareUrl = useMemo(
-    () => buildLeaderboardFacebookShareUrl({ eventId, clientId, category: categoryFilter }),
     [eventId, clientId, categoryFilter],
   )
 
@@ -118,32 +112,6 @@ function LeaderboardShareModalBody({
     [ownerName, eventTitle, rank, loggedKm, progressPercent, goalCompleted, categoryLabel],
   )
 
-  const facebookShareCaption = useMemo(
-    () =>
-      buildLeaderboardShareCaptionWithLink(
-        {
-          ownerName,
-          eventTitle,
-          rank,
-          loggedKm,
-          progressPercent,
-          goalCompleted,
-          categoryLabel,
-        },
-        shareUrl,
-      ),
-    [
-      ownerName,
-      eventTitle,
-      rank,
-      loggedKm,
-      progressPercent,
-      goalCompleted,
-      categoryLabel,
-      shareUrl,
-    ],
-  )
-
   const trackShare = useCallback(
     (channel) => {
       trackEvent('leaderboard_share', {
@@ -170,10 +138,10 @@ function LeaderboardShareModalBody({
 
   const onCopyLink = () =>
     runShare('copy', async () => {
-      const ok = await copyTextToClipboard(facebookShareUrl || shareUrl)
+      const ok = await copyTextToClipboard(shareUrl)
       if (ok) {
         trackShare('copy_link')
-        notifySuccess('Facebook share link copied — paste into your post if preview is empty.')
+        notifySuccess('Leaderboard link copied!')
       } else {
         notifyError('Could not copy link.')
       }
@@ -208,51 +176,39 @@ function LeaderboardShareModalBody({
 
   const onFacebookShare = () =>
     runShare('facebook', async () => {
-      if (facebookShareUrl && !facebookShareUrl.includes('/standing/')) {
-        notifyError(
-          'Share preview is misconfigured. Set VITE_LARAVEL_API to your Laravel API URL, rebuild the client, then try again.',
-        )
+      const cardEl = cardExportRef.current
+      if (!cardEl) {
+        notifyError('Could not find rank card preview.')
         return
       }
 
       const result = await shareLeaderboardToFacebook({
-        eventId,
-        clientId,
-        category: categoryFilter,
-        shareCaption: facebookShareCaption,
-        imageUrl: cardImageSrc,
-        eventTitle,
+        cardElement: cardEl,
+        shareCaption,
         rank,
+        shareUrl,
       })
       trackShare('facebook')
 
-      if (result.reason === 'missing_app_id') {
-        notifyError(
-          'Facebook sharing needs VITE_FACEBOOK_APP_ID in client/.env. Rebuild the app after setting it.',
-        )
+      if (result.reason === 'export_failed') {
+        notifyError(result.message || 'Could not save rank card image.')
         return
       }
 
       if (result.ok) {
-        if (result.method === 'facebook_feed_dialog') {
-          notifySuccess(
-            'Facebook opened with your rank card. Confirm the post — caption is on your clipboard (Ctrl+V).',
-          )
-        } else if (result.mode === 'timeline_local_dev_manual' || result.downloaded) {
-          notifySuccess(
-            'Caption copied and rank card downloaded. On Facebook: create a post, paste (Ctrl+V), and attach the image.',
-          )
-        } else if (result.copied) {
-          notifySuccess('Caption + link copied. Paste into your Facebook post (Ctrl+V).')
+        if (result.method === 'native_photo') {
+          notifySuccess('Shared with your rank card image!')
         } else {
-          notifySuccess('Facebook opened. Paste your caption (Ctrl+V) to finish the post.')
+          notifySuccess(
+            'Rank card saved to Downloads. Facebook opened — click Photo/Video, add the image, paste caption (Ctrl+V), then Share.',
+          )
         }
         return
       }
 
       if (result.reason === 'cancelled') return
 
-      notifyError(result.message || 'Could not open Facebook. Allow pop-ups, then try Copy link.')
+      notifyError(result.message || 'Could not prepare Facebook share.')
     })
 
   const onPlatformShare = (platform, label) =>
@@ -282,24 +238,27 @@ function LeaderboardShareModalBody({
       <div className="badge-share-modal-body leaderboard-share-modal-body">
         <section className="leaderboard-share-preview-section">
           <div className="leaderboard-share-preview-label">
-            <span>Preview</span>
+            <span>Preview — this image is posted to Facebook</span>
           </div>
-          <LeaderboardBragCard
-            ownerName={ownerName}
-            eventTitle={eventTitle}
-            rank={rank}
-            progress={progress}
-            categoryLabel={categoryLabel}
-            eventImageUrl={eventImageUrl}
-            resolveMediaUrl={resolveMediaUrl}
-          />
+          <div ref={cardExportRef} className="leaderboard-share-export-target">
+            <LeaderboardBragCard
+              ownerName={ownerName}
+              eventTitle={eventTitle}
+              rank={rank}
+              progress={progress}
+              categoryLabel={categoryLabel}
+              eventImageUrl={eventImageUrl}
+              resolveMediaUrl={resolveMediaUrl}
+            />
+          </div>
         </section>
 
         <section className="leaderboard-share-social-panel">
           <h4 className="leaderboard-share-social-title">Share to</h4>
           <p className="leaderboard-share-fb-steps">
-            Facebook: opens your <strong>rank card</strong> (not the event signup banner). Caption is copied
-            automatically — paste with Ctrl+V if needed.
+            Facebook saves your <strong>rank card image</strong> (like the preview above), opens
+            Facebook, then you add it as a <strong>photo post</strong> — caption is copied for paste
+            (Ctrl+V).
           </p>
 
           <div className="leaderboard-share-chips">
