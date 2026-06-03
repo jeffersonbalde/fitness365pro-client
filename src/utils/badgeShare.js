@@ -8,6 +8,7 @@ import {
   isLocalDevelopmentUrl,
   openFacebookDialogSharePopup,
   openFacebookLegacySharerPopup,
+  openFacebookPageShare,
   openFacebookShareDialog,
 } from './facebookShare'
 
@@ -210,7 +211,19 @@ export const shareToFacebook = async ({
     }
   }
 
-  // FB.ui "share_channel" often ignores href and shows only the site domain — pass ?u= explicitly.
+  // Full-page dialog keeps href (popup share_channel often shows only fitness365pro.com).
+  const pageShare = openFacebookPageShare(shareUrl)
+  if (pageShare) {
+    return {
+      ok: true,
+      method: 'facebook_page_share',
+      opened: true,
+      copied,
+      downloaded: false,
+      mode: isPublicShareUrl(shareUrl) ? 'timeline_with_preview' : 'timeline_local_dev',
+    }
+  }
+
   const legacySharer = openFacebookLegacySharerPopup(shareUrl)
   if (legacySharer) {
     return {

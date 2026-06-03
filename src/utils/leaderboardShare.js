@@ -3,7 +3,6 @@
  */
 
 import { getClientAppOrigin, getPublicShareOrigin } from './badgeShare'
-import { buildEventShareUrl } from './eventShare'
 import {
   canUseNativeShare,
   copyTextToClipboard,
@@ -29,19 +28,17 @@ export const buildLeaderboardShareUrl = ({ eventId, clientId, category = 'all' }
 }
 
 /**
- * Facebook preview URL — /share/event/{id}?standing={clientId}.
- * Uses the event path Meta already scrapes, with leaderboard rank-card OG tags.
+ * Facebook preview URL — /share/event/{eventId}/standing/{clientId} (rank-card OG, not event banner).
  */
 export const buildLeaderboardFacebookShareUrl = ({ eventId, clientId, category = 'all' }) => {
   if (!eventId || !clientId) return ''
-  const base = buildEventShareUrl(eventId)
-  if (!base) return ''
-  const params = new URLSearchParams({ standing: String(clientId) })
+  const origin = getPublicShareOrigin()
+  const base = `${origin}/share/event/${encodeURIComponent(String(eventId))}/standing/${encodeURIComponent(String(clientId))}`
   const cat = String(category || '').trim()
   if (cat && cat !== 'all') {
-    params.set('category', cat)
+    return `${base}?category=${encodeURIComponent(cat)}`
   }
-  return `${base}?${params.toString()}`
+  return base
 }
 
 /** Dynamic OG card image (rank + stats). */

@@ -71,6 +71,11 @@ function LeaderboardShareModalBody({
     [eventId, clientId, categoryFilter],
   )
 
+  const facebookShareUrl = useMemo(
+    () => buildLeaderboardFacebookShareUrl({ eventId, clientId, category: categoryFilter }),
+    [eventId, clientId, categoryFilter],
+  )
+
   const loggedKm = progress?.logged_distance_km
   const progressPercent = progress?.progress_percent
   const goalCompleted = Boolean(progress?.goal_completed)
@@ -165,10 +170,10 @@ function LeaderboardShareModalBody({
 
   const onCopyLink = () =>
     runShare('copy', async () => {
-      const ok = await copyTextToClipboard(shareUrl)
+      const ok = await copyTextToClipboard(facebookShareUrl || shareUrl)
       if (ok) {
         trackShare('copy_link')
-        notifySuccess('Link copied!')
+        notifySuccess('Facebook share link copied — paste into your post if preview is empty.')
       } else {
         notifyError('Could not copy link.')
       }
@@ -201,14 +206,9 @@ function LeaderboardShareModalBody({
       }
     })
 
-  const facebookShareUrl = useMemo(
-    () => buildLeaderboardFacebookShareUrl({ eventId, clientId, category: categoryFilter }),
-    [eventId, clientId, categoryFilter],
-  )
-
   const onFacebookShare = () =>
     runShare('facebook', async () => {
-      if (facebookShareUrl && !facebookShareUrl.includes('standing=')) {
+      if (facebookShareUrl && !facebookShareUrl.includes('/standing/')) {
         notifyError(
           'Share preview is misconfigured. Set VITE_LARAVEL_API to your Laravel API URL, rebuild the client, then try again.',
         )
@@ -238,10 +238,12 @@ function LeaderboardShareModalBody({
           )
         } else if (result.copied) {
           notifySuccess(
-            'Caption copied — paste (Ctrl+V) if needed. Facebook should show your rank card preview (not the plain event banner).',
+            'Opened Facebook in a new tab. Paste your caption (Ctrl+V). If the preview is empty, paste the link from Copy link into the post.',
           )
         } else {
-          notifySuccess('Facebook share opened! Confirm the post to publish.')
+          notifySuccess(
+            'Facebook opened in a new tab. Add your caption and confirm — use Copy link if the preview is missing.',
+          )
         }
         return
       }

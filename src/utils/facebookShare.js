@@ -40,6 +40,32 @@ export const getFacebookRedirectUri = (shareUrl) => {
   return shareUrl
 }
 
+/**
+ * Full-page Share Dialog URL — avoids share_channel popup that drops the href.
+ */
+export const buildFacebookPageShareUrl = (shareUrl) => {
+  const appId = getFacebookAppId()
+  if (!appId || !shareUrl) return ''
+
+  const params = new URLSearchParams({
+    app_id: appId,
+    display: 'page',
+    href: shareUrl,
+    redirect_uri: getFacebookRedirectUri(shareUrl),
+  })
+
+  return `https://www.facebook.com/dialog/share?${params.toString()}`
+}
+
+/** Opens Share Dialog in a full tab (most reliable for OG link previews). */
+export const openFacebookPageShare = (shareUrl) => {
+  const url = buildFacebookPageShareUrl(shareUrl)
+  if (!url || typeof window === 'undefined') return false
+
+  const opened = window.open(url, '_blank', 'noopener,noreferrer')
+  return Boolean(opened)
+}
+
 const loadFacebookSdk = () =>
   new Promise((resolve, reject) => {
     if (typeof window === 'undefined') {
