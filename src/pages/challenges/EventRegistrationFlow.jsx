@@ -401,6 +401,34 @@ const EventRegistrationFlow = () => {
     }
   }, [reloadAll])
 
+  /** Poll Maya using stored checkout / reference numbers (works after QR pay without redirect). */
+  const syncPendingPayment = useCallback(async ({ silent = false } = {}) => {
+    if (!eventId) return false
+
+    try {
+      const res = await apiRequest(`/v1/cms/events/${eventId}/registration/paymaya/sync`, {
+        method: 'POST',
+        body: {},
+      })
+      if (res.data?.success && res.data?.data?.paid) {
+        if (!silent) {
+          notifySuccess(res.data.message || 'Payment verified. Welcome aboard!')
+        }
+        navigate(`/challenges/${eventId}`)
+        return true
+      }
+      if (!silent) {
+        notifyError(res.data?.message || 'Payment is not finalized yet.')
+      }
+    } catch (error) {
+      if (!silent) {
+        notifyError(error?.response?.data?.message || 'Could not verify payment yet.')
+      }
+    }
+
+    return false
+  }, [eventId, navigate])
+
   useEffect(() => {
     reloadAll({ withSpinner: true })
   }, [reloadAll])
@@ -854,34 +882,6 @@ const EventRegistrationFlow = () => {
       setBusy(false)
     }
   }
-
-  /** Poll Maya using stored checkout / reference numbers (works after QR pay without redirect). */
-  const syncPendingPayment = useCallback(async ({ silent = false } = {}) => {
-    if (!eventId) return false
-
-    try {
-      const res = await apiRequest(`/v1/cms/events/${eventId}/registration/paymaya/sync`, {
-        method: 'POST',
-        body: {},
-      })
-      if (res.data?.success && res.data?.data?.paid) {
-        if (!silent) {
-          notifySuccess(res.data.message || 'Payment verified. Welcome aboard!')
-        }
-        navigate(`/challenges/${eventId}`)
-        return true
-      }
-      if (!silent) {
-        notifyError(res.data?.message || 'Payment is not finalized yet.')
-      }
-    } catch (error) {
-      if (!silent) {
-        notifyError(error?.response?.data?.message || 'Could not verify payment yet.')
-      }
-    }
-
-    return false
-  }, [eventId, navigate])
 
   /** @returns {Promise<boolean>} true if browser is redirecting to Maya checkout */
   const launchPaymaya = async (options = {}) => {
