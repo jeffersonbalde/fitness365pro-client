@@ -192,9 +192,14 @@ function LeaderboardShareModalBody({
         return
       }
 
+      if (result.reason === 'local_dev') {
+        notifyError(result.message || 'Share from production to preview on Facebook.')
+        return
+      }
+
       if (result.ok) {
         notifySuccess(
-          'Facebook opened with your rank card preview. Paste the caption (Ctrl+V) if needed, then post.',
+          'Facebook opened with your rank card link. If the preview is empty, paste from clipboard (Ctrl+V) — do not type the link manually.',
         )
         return
       }
@@ -249,9 +254,9 @@ function LeaderboardShareModalBody({
         <section className="leaderboard-share-social-panel">
           <h4 className="leaderboard-share-social-title">Share to</h4>
           <p className="leaderboard-share-fb-steps">
-            Facebook opens the <strong>share dialog</strong> with your rank, name, and event on the
-            card image. Friends who tap the link open the <strong>live leaderboard</strong> in the app.
-            Caption is copied for paste (Ctrl+V).
+            Opens the <strong>Facebook share dialog</strong> with your rank-card image and link.
+            Friends tap the post to open the <strong>live leaderboard</strong>. Caption is copied
+            (Ctrl+V) — use the copied link, not only fitness365pro.com.
           </p>
 
           <div className="leaderboard-share-chips">

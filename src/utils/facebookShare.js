@@ -47,7 +47,7 @@ export const buildFacebookFeedDialogUrl = ({ link, picture, name, description })
 
   const params = new URLSearchParams({
     app_id: appId,
-    display: 'page',
+    display: 'popup',
     link,
     redirect_uri: getFacebookRedirectUri(link),
   })

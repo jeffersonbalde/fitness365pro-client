@@ -7,10 +7,15 @@ import {
   canUseNativeShare,
   copyTextToClipboard,
   shareNative,
-  shareToFacebook,
   shareViaPlatform,
 } from './badgeShare'
-import { hasFacebookAppId, isLocalDevelopmentUrl, openFacebookFeedDialog } from './facebookShare'
+import {
+  hasFacebookAppId,
+  isLocalDevelopmentUrl,
+  openFacebookFeedDialog,
+  openFacebookLegacySharerPopup,
+  openFacebookShareDialog,
+} from './facebookShare'
 
 export { canUseNativeShare, copyTextToClipboard, shareViaPlatform }
 
@@ -29,7 +34,7 @@ export const buildLeaderboardShareUrl = ({ eventId, clientId, category = 'all' }
 }
 
 /**
- * Facebook uses /share/event/{eventId}/standing/{clientId} — rank-card OG (not event registration banner).
+ * Facebook crawls this URL for rank-card preview (under /share/event/ like event shares).
  */
 export const buildLeaderboardFacebookShareUrl = ({ eventId, clientId, category = 'all' }) => {
   if (!eventId || !clientId) return ''
@@ -65,9 +70,6 @@ export const buildLeaderboardShareCardSvgUrl = ({ eventId, clientId, category = 
   }
   return base
 }
-
-/** Same-origin proxy for CDN images (html2canvas export). */
-export { buildShareMediaProxyUrl } from './badgeShare'
 
 export const buildLeaderboardClientUrl = (eventId) => {
   if (!eventId) return ''
@@ -159,8 +161,8 @@ export const buildLeaderboardOgTitle = ({ rank, eventTitle }) => {
 }
 
 /**
- * Facebook Share Dialog with rank-card preview (same flow as Events).
- * Link is the standing OG page; picture is the generated 1200×630 rank card.
+ * Facebook share dialog with rank-card OG preview (never download-to-device).
+ * Uses Laravel standing URL so Meta can scrape og:image (card.png).
  */
 export const shareLeaderboardToFacebook = async ({
   eventId,
@@ -173,7 +175,6 @@ export const shareLeaderboardToFacebook = async ({
 }) => {
   const shareUrl = buildLeaderboardFacebookShareUrl({ eventId, clientId, category })
   const appUrl = buildLeaderboardClientUrl(eventId)
-  const captionWithLink = appUrl ? `${shareCaption}\n\n${appUrl}` : shareCaption
   const ogTitle = buildLeaderboardOgTitle({ rank, eventTitle })
 
   if (!hasFacebookAppId()) {
@@ -191,35 +192,76 @@ export const shareLeaderboardToFacebook = async ({
     return { ok: false, reason: 'missing_url', opened: false, copied: false, downloaded: false }
   }
 
-  const copied = await copyTextToClipboard(captionWithLink)
+  const captionForClipboard = appUrl
+    ? `${shareCaption}\n\n${shareUrl}\n\nView in app: ${appUrl}`
+    : `${shareCaption}\n\n${shareUrl}`
 
-  if (!isLocalDevelopmentUrl(shareUrl)) {
-    const feedOpened = openFacebookFeedDialog({
-      link: shareUrl,
-      picture: cardImageUrl,
-      name: ogTitle,
-      description: shareCaption,
-    })
-    if (feedOpened) {
-      return {
-        ok: true,
-        method: 'facebook_feed_dialog',
-        opened: true,
-        copied,
-        downloaded: false,
-        mode: 'timeline_with_preview',
-      }
+  const copied = await copyTextToClipboard(captionForClipboard)
+
+  if (isLocalDevelopmentUrl(shareUrl)) {
+    return {
+      ok: false,
+      reason: 'local_dev',
+      opened: false,
+      copied,
+      downloaded: false,
+      message: 'Facebook preview requires production URLs. Deploy and share from fitness365pro.com.',
     }
   }
 
-  return shareToFacebook({
-    shareUrl,
-    shareCaption: captionWithLink,
-    imageUrl: cardImageUrl,
-    hashtag: null,
-    preCopyCaption: false,
-    preferDialogPopup: false,
+  const sharerOpened = openFacebookLegacySharerPopup(shareUrl)
+  if (sharerOpened) {
+    return {
+      ok: true,
+      method: 'facebook_legacy_sharer',
+      opened: true,
+      copied,
+      downloaded: false,
+      mode: 'timeline_with_preview',
+    }
+  }
+
+  const feedOpened = openFacebookFeedDialog({
+    link: shareUrl,
+    picture: cardImageUrl,
+    name: ogTitle,
+    description: shareCaption,
   })
+  if (feedOpened) {
+    return {
+      ok: true,
+      method: 'facebook_feed_dialog',
+      opened: true,
+      copied,
+      downloaded: false,
+      mode: 'timeline_with_preview',
+    }
+  }
+
+  const sdkResult = await openFacebookShareDialog({ shareUrl, hashtag: null })
+  if (sdkResult.ok) {
+    return {
+      ok: true,
+      method: 'facebook_share_dialog',
+      opened: true,
+      copied,
+      downloaded: false,
+      mode: 'timeline_with_preview',
+    }
+  }
+
+  if (sdkResult.reason === 'cancelled') {
+    return { ok: false, reason: 'cancelled', opened: false, copied, downloaded: false }
+  }
+
+  return {
+    ok: false,
+    reason: 'blocked',
+    opened: false,
+    copied,
+    downloaded: false,
+    message: 'Allow pop-ups for Facebook, then try again.',
+  }
 }
 
 export const shareLeaderboardNative = async ({ eventTitle, shareCaption, shareUrl, imageUrl }) =>
