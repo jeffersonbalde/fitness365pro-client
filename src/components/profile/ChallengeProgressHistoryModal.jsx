@@ -116,7 +116,7 @@ const normalizeEventRewards = (raw, defaultLabel = 'Reward') => {
     .filter(Boolean)
 }
 
-function ChallengeHistoryRewardsSection({ label, items, memberName, resolveMediaUrl }) {
+function ChallengeHistoryRewardsSection({ label, items, resolveMediaUrl }) {
   if (!items.length) return null
 
   return (
@@ -129,7 +129,7 @@ function ChallengeHistoryRewardsSection({ label, items, memberName, resolveMedia
               <EarnedRewardArtwork
                 item={item}
                 resolveMediaUrl={resolveMediaUrl}
-                ownerName={memberName}
+                ownerName=""
                 alt={item.title}
                 variant="panel"
                 imgClassName="challenge-history-reward-img"
@@ -458,13 +458,11 @@ export default function ChallengeProgressHistoryModal({
                     <ChallengeHistoryRewardsSection
                       label="Badges"
                       items={badges}
-                      memberName={memberName}
                       resolveMediaUrl={resolveMediaUrl}
                     />
                     <ChallengeHistoryRewardsSection
                       label="Trophies"
                       items={trophies}
-                      memberName={memberName}
                       resolveMediaUrl={resolveMediaUrl}
                     />
                   </section>
