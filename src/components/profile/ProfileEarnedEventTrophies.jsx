@@ -1,4 +1,5 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useMemo } from 'react'
+import EarnedRewardThumbnail from './EarnedRewardThumbnail.jsx'
 
 /**
  * CMS event trophies (image_url from admin_events.trophies), shown when enrolled challenge reaches 100% progress.
@@ -8,16 +9,6 @@ export default function ProfileEarnedEventTrophies({
   resolveMediaUrl,
 }) {
   const list = useMemo(() => (Array.isArray(items) ? items : []).filter(Boolean), [items])
-
-  const resolveImg = useCallback(
-    (u) => {
-      if (!u) return ''
-      const s = String(u)
-      if (resolveMediaUrl) return resolveMediaUrl(s)
-      return s
-    },
-    [resolveMediaUrl],
-  )
 
   return (
     <section className="profile-earned-event-trophies-block" aria-labelledby="profile-earned-event-trophies-title">
@@ -31,19 +22,18 @@ export default function ProfileEarnedEventTrophies({
       ) : (
         <ul className="profile-earned-event-rewards-grid" role="list">
           {list.map((t) => {
-            const src = resolveImg(t.image_url)
             const label = t.event_title
               ? `${t.event_title}${t.title ? ` · ${t.title}` : ''}`
               : t.title || 'Trophy'
             return (
               <li key={t.id} className="profile-earned-event-reward-li">
                 <div className="profile-earned-event-reward-card" title={label}>
-                  <div className="profile-earned-event-reward-frame" aria-hidden={!src}>
-                    {src ? (
-                      <img className="profile-earned-event-reward-img" src={src} alt={t.title || 'Event trophy'} />
-                    ) : (
-                      <div className="profile-earned-event-reward-fallback" aria-hidden />
-                    )}
+                  <div className="profile-earned-event-reward-frame">
+                    <EarnedRewardThumbnail
+                      item={t}
+                      resolveMediaUrl={resolveMediaUrl}
+                      alt={t.title || 'Event trophy'}
+                    />
                   </div>
                   {(t.title || t.event_title) && (
                     <span className="profile-earned-event-reward-caption">{t.title || t.event_title}</span>

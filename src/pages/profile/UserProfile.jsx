@@ -688,7 +688,7 @@ const UserProfile = () => {
                 </div>
               </div>
               <div className="col-12 col-lg-8">
-                <div className="profile-section-card">
+                <div className="profile-section-card profile-timeline-panel">
                   <div className="profile-timeline-head">
                     <div className="profile-section-title mb-0">Timeline</div>
                     <div className="profile-timeline-subtitle">Recent workout posts</div>
@@ -719,11 +719,14 @@ const UserProfile = () => {
                               )}
                           </div>
                         </div>
+                        {(entry.duration_minutes || entry.distance_km || entry.pace_min_per_km) && (
                         <div className="timeline-stat-row">
                           {entry.duration_minutes && <div className="timeline-stat">{entry.duration_minutes} min</div>}
                           {entry.distance_km && <div className="timeline-stat">{entry.distance_km} km</div>}
                           {entry.pace_min_per_km && <div className="timeline-stat">{entry.pace_min_per_km} min/km</div>}
                         </div>
+                        )}
+                        {entry.caption && <div className="timeline-notes">{entry.caption}</div>}
                         {entry.notes && <div className="timeline-notes">{entry.notes}</div>}
                         {Array.isArray(entry.workout_images) && entry.workout_images.length > 0 && (
                           <div className="timeline-images">

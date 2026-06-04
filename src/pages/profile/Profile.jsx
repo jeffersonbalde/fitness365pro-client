@@ -1826,6 +1826,7 @@ const Profile = () => {
                             </div>
                           </div>
                         </div>
+                        {(entry.duration_minutes || entry.distance_km || entry.pace_min_per_km) && (
                         <div className="timeline-stat-row">
                           {entry.duration_minutes && (
                             <div className="timeline-stat">{entry.duration_minutes} min</div>
@@ -1837,6 +1838,8 @@ const Profile = () => {
                             <div className="timeline-stat">{entry.pace_min_per_km} min/km</div>
                           )}
                         </div>
+                        )}
+                        {entry.caption && <div className="timeline-notes">{entry.caption}</div>}
                         {entry.notes && <div className="timeline-notes">{entry.notes}</div>}
                         {Array.isArray(entry.workout_images) && entry.workout_images.length > 0 && (
                           <div className="timeline-images">
