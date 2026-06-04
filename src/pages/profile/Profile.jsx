@@ -3058,6 +3058,7 @@ const Profile = () => {
         open={Boolean(challengeJournalModal?.eventId)}
         eventId={challengeJournalModal?.eventId || ''}
         eventTitleFallback={challengeJournalModal?.title || ''}
+        memberDisplayName={displayName}
         resolveMediaUrl={resolveMediaUrl}
         onClosed={() => setChallengeJournalModal(null)}
       />

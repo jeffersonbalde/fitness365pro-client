@@ -951,6 +951,10 @@
 
 .badge-share-image-ring .profile-earned-reward-artwork.is-hero .profile-earned-reward-name-ribbon{font-size:.82rem;padding:8px 12px}
 
+.profile-earned-reward-artwork.is-panel{width:100%;height:100%;border-radius:10px}
+
+.profile-earned-reward-artwork.is-panel .profile-earned-reward-name-ribbon{font-size:.72rem;padding:6px 8px}
+
 .profile-page .profile-earned-event-reward-fallback{width:100%;height:100%;background:color-mix(in srgb,var(--app-border) 30%,transparent)}
 
 .profile-page .profile-earned-event-reward-caption{display:block;margin-top:8px;font-size:.69rem;font-weight:600;line-height:1.25;color:var(--app-text-muted,#64748b);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:88px}

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AppModalTransition from '../AppModalTransition.jsx'
 import { apiRequest, ensureAccessToken } from '../../utils/api'
-import { resolveEarnedRewardThumbnailUrl } from '../../utils/mediaUrl'
+import EarnedRewardArtwork from './EarnedRewardArtwork.jsx'
 import './ChallengeProgressHistoryModal.css'
 
 /** Unmount timeouts — slightly longer than challenge-history-detail-leave / lb-leave in CSS */
@@ -96,20 +96,51 @@ const daysLeftLabel = (endsAtIso, nowMs = Date.now()) => {
   return { text: `${days} day${days === 1 ? '' : 's'} left`, done: false }
 }
 
-const normalizeBadges = (raw) => {
+const normalizeEventRewards = (raw, defaultLabel = 'Reward') => {
   if (!Array.isArray(raw) || raw.length === 0) return []
   return raw
     .map((b, idx) => {
       if (typeof b === 'string') {
         const t = b.trim()
-        return t ? { key: `slug-${idx}`, title: t, imageUrl: '' } : null
+        return t ? { key: `slug-${idx}`, title: t, image_url: '' } : null
       }
       if (!b || typeof b !== 'object') return null
-      const title = String(b.title || b.label || b.slug || `Badge ${idx + 1}`).trim()
+      const title = String(b.title || b.label || b.slug || `${defaultLabel} ${idx + 1}`).trim()
       const imageUrl = String(b.image_url || b.imageUrl || '').trim()
-      return { key: String(b.slug || b.id || idx), title: title || `Badge ${idx + 1}`, imageUrl }
+      return {
+        key: String(b.slug || b.id || `${defaultLabel}-${idx}`),
+        title: title || `${defaultLabel} ${idx + 1}`,
+        image_url: imageUrl,
+      }
     })
     .filter(Boolean)
+}
+
+function ChallengeHistoryRewardsSection({ label, items, memberName, resolveMediaUrl }) {
+  if (!items.length) return null
+
+  return (
+    <div className="challenge-history-rewards-group">
+      <div className="challenge-history-block-label">{label}</div>
+      <div className="challenge-history-rewards-grid">
+        {items.map((item) => (
+          <div key={item.key} className="challenge-history-reward-card">
+            <div className="challenge-history-reward-media">
+              <EarnedRewardArtwork
+                item={item}
+                resolveMediaUrl={resolveMediaUrl}
+                ownerName={memberName}
+                alt={item.title}
+                variant="panel"
+                imgClassName="challenge-history-reward-img"
+              />
+            </div>
+            <span className="challenge-history-reward-title">{item.title}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function ChallengeHistoryStatIconDistance() {
@@ -194,20 +225,6 @@ export default function ChallengeProgressHistoryModal({
     [resolveMediaUrl],
   )
 
-  const resolveRewardImg = useCallback(
-    (row) => {
-      if (!row || typeof row !== 'object') return resolveImg(row?.image_url || row?.imageUrl)
-      return resolveEarnedRewardThumbnailUrl(
-        {
-          image_url: row.image_url || row.imageUrl,
-          base_image_url: row.base_image_url || row.image_url || row.imageUrl,
-        },
-        resolveMediaUrl,
-      )
-    },
-    [resolveImg, resolveMediaUrl],
-  )
-
   useEffect(() => {
     if (!open || !eventId) {
       setPayload(null)
@@ -278,7 +295,15 @@ export default function ChallengeProgressHistoryModal({
     }
   }, [open])
 
-  const badges = useMemo(() => normalizeBadges(payload?.event?.badges), [payload?.event?.badges])
+  const badges = useMemo(
+    () => normalizeEventRewards(payload?.event?.badges, 'Badge'),
+    [payload?.event?.badges],
+  )
+  const trophies = useMemo(
+    () => normalizeEventRewards(payload?.event?.trophies, 'Trophy'),
+    [payload?.event?.trophies],
+  )
+  const hasRewards = badges.length > 0 || trophies.length > 0
 
   const pctDisplay = useMemo(() => {
     const rawCp = normalizeChallengeProgress(payload?.challenge_progress)
@@ -428,25 +453,20 @@ export default function ChallengeProgressHistoryModal({
 
             {!loading && !error && payload && (
               <>
-                {badges.length > 0 ? (
-                  <section className="challenge-history-badges-block" aria-label="Event badges">
-                    <div className="challenge-history-block-label">Badges</div>
-                    <div className="challenge-history-badges-strip">
-                      {badges.map((b) => (
-                        <div key={b.key} className="challenge-history-badge-chip">
-                          {b.imageUrl ? (
-                            <img
-                              className="challenge-history-badge-chip-img"
-                              src={resolveRewardImg(b)}
-                              alt=""
-                            />
-                          ) : (
-                            <div className="challenge-history-badge-chip-fallback" aria-hidden />
-                          )}
-                          <span className="challenge-history-badge-chip-title">{b.title}</span>
-                        </div>
-                      ))}
-                    </div>
+                {hasRewards ? (
+                  <section className="challenge-history-rewards-block" aria-label="Event rewards">
+                    <ChallengeHistoryRewardsSection
+                      label="Badges"
+                      items={badges}
+                      memberName={memberName}
+                      resolveMediaUrl={resolveMediaUrl}
+                    />
+                    <ChallengeHistoryRewardsSection
+                      label="Trophies"
+                      items={trophies}
+                      memberName={memberName}
+                      resolveMediaUrl={resolveMediaUrl}
+                    />
                   </section>
                 ) : null}
 

@@ -24,7 +24,11 @@ export default function EarnedRewardArtwork({
     [item, resolveMediaUrl],
   )
 
-  const ribbonName = useMemo(() => truncateName(ownerName, variant === 'hero' ? 34 : 22), [ownerName, variant])
+  const ribbonName = useMemo(() => {
+    if (variant === 'hero') return truncateName(ownerName, 34)
+    if (variant === 'panel') return truncateName(ownerName, 28)
+    return truncateName(ownerName, 22)
+  }, [ownerName, variant])
 
   if (!src) {
     return <div className="profile-earned-event-reward-fallback" aria-hidden />
