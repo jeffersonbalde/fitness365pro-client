@@ -16,6 +16,7 @@ import {
   shareViaPlatform,
 } from '../../utils/badgeShare'
 import EarnedRewardShareImage from './EarnedRewardShareImage.jsx'
+import { resolveEarnedRewardPersonalizedUrl, resolveEarnedRewardThumbnailUrl } from '../../utils/mediaUrl'
 import './BadgeShareModal.css'
 
 const formatEarnedDate = (iso) => {
@@ -50,16 +51,15 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl, kind
   const [busyKey, setBusyKey] = useState('')
   const isTrophy = kind === 'trophy'
 
-  const isPersonalizedReward = useMemo(() => {
-    if (badge?.base_image_url) return true
-    const url = badge?.image_url ? String(badge.image_url) : ''
-    return url.includes('/share/reward/')
-  }, [badge?.base_image_url, badge?.image_url])
+  const displayImageSrc = useMemo(
+    () => resolveEarnedRewardThumbnailUrl(badge, resolveMediaUrl),
+    [badge, resolveMediaUrl],
+  )
 
-  const imageSrc = useMemo(() => {
-    const raw = badge?.image_url || badge?.base_image_url || ''
-    return resolveMediaUrl ? resolveMediaUrl(String(raw)) : String(raw)
-  }, [badge?.image_url, badge?.base_image_url, resolveMediaUrl])
+  const shareImageSrc = useMemo(() => {
+    const personalized = resolveEarnedRewardPersonalizedUrl(badge, resolveMediaUrl)
+    return personalized || displayImageSrc
+  }, [badge, displayImageSrc, resolveMediaUrl])
 
   const rewardTitle = badge?.title || (isTrophy ? 'Challenge Trophy' : 'Challenge Badge')
   const eventTitle = badge?.event_title || 'Challenge'
@@ -154,7 +154,7 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl, kind
 
   const onDownload = () =>
     runShare('download', async () => {
-      const ok = await downloadBadgeImage(imageSrc, `fitness365-${rewardKey || (isTrophy ? 'trophy' : 'badge')}.png`)
+      const ok = await downloadBadgeImage(shareImageSrc, `fitness365-${rewardKey || (isTrophy ? 'trophy' : 'badge')}.png`)
       if (ok) {
         trackShare('download')
         notifySuccess(isTrophy ? 'Trophy image downloaded!' : 'Badge image downloaded!')
@@ -169,7 +169,7 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl, kind
         title: `${rewardTitle} — Fitness 365 Pro`,
         text: shareCaption,
         shareUrl,
-        imageUrl: imageSrc,
+        imageUrl: shareImageSrc,
       })
       if (result.ok) {
         trackShare('native')
@@ -184,7 +184,7 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl, kind
       const result = await shareToFacebook({
         shareUrl,
         shareCaption,
-        imageUrl: imageSrc,
+        imageUrl: shareImageSrc,
       })
       trackShare('facebook')
 
@@ -270,7 +270,7 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl, kind
   const onInstagramShare = () =>
     runShare('instagram', async () => {
       const { copied, downloaded } = await prepareInstagramShare({
-        imageUrl: imageSrc,
+        imageUrl: shareImageSrc,
         caption: `${shareCaption}\n\n${shareUrl}`,
       })
       trackShare('instagram')
@@ -301,13 +301,11 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl, kind
 
       <div className="badge-share-modal-body">
         <div className="badge-share-hero">
-          <div className={`badge-share-image-ring ${isPersonalizedReward ? 'is-personalized-reward' : ''}`}>
+          <div className="badge-share-image-ring">
             <EarnedRewardShareImage
               item={badge}
               resolveMediaUrl={resolveMediaUrl}
               alt={rewardTitle}
-              className={`badge-share-image ${isPersonalizedReward ? 'is-personalized-reward' : ''}`}
-              fallbackClassName={`badge-share-image-fallback ${isPersonalizedReward ? 'is-personalized-reward' : ''}`}
             />
           </div>
           <div className="badge-share-verified-pill">

@@ -34,9 +34,26 @@ export function resolveMediaUrl(url) {
   return `${origin}/${raw}`
 }
 
-/** Profile badge/trophy tiles — prefer base artwork over personalized /share/reward URLs. */
+const isPersonalizedRewardPath = (url) => String(url || '').includes('/share/reward/')
+
+/** In-app badge/trophy display — never use /share/reward (SVG/PNG overlays break in <img>). */
 export function resolveEarnedRewardThumbnailUrl(item, resolveMediaUrlFn = resolveMediaUrl) {
-  const raw = item?.base_image_url || item?.image_url
-  if (!raw) return ''
+  const candidates = [item?.base_image_url, item?.image_url]
+    .filter(Boolean)
+    .map(String)
+
+  for (const raw of candidates) {
+    if (isPersonalizedRewardPath(raw)) continue
+    const resolved = resolveMediaUrlFn(raw)
+    if (resolved) return resolved
+  }
+
+  return ''
+}
+
+/** Optional personalized overlay URL for share/download only. */
+export function resolveEarnedRewardPersonalizedUrl(item, resolveMediaUrlFn = resolveMediaUrl) {
+  const raw = item?.personalized_image_url || item?.image_url
+  if (!raw || !isPersonalizedRewardPath(raw)) return ''
   return resolveMediaUrlFn(String(raw))
 }
