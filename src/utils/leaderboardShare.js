@@ -7,13 +7,10 @@ import {
   canUseNativeShare,
   copyTextToClipboard,
   shareNative,
+  shareToFacebook,
   shareViaPlatform,
 } from './badgeShare'
-import {
-  downloadBlob,
-  exportLeaderboardCardBlob,
-  openFacebookHome,
-} from './leaderboardCardExport'
+import { hasFacebookAppId, isLocalDevelopmentUrl, openFacebookFeedDialog } from './facebookShare'
 
 export { canUseNativeShare, copyTextToClipboard, shareViaPlatform }
 
@@ -162,75 +159,67 @@ export const buildLeaderboardOgTitle = ({ rank, eventTitle }) => {
 }
 
 /**
- * Facebook: save rank-card PNG + open Facebook (photo post — same big image as Events preview).
- * Meta link-share popups ignore our URL; uploading the card image always works.
+ * Facebook Share Dialog with rank-card preview (same flow as Events).
+ * Link is the standing OG page; picture is the generated 1200×630 rank card.
  */
 export const shareLeaderboardToFacebook = async ({
-  cardElement,
-  cardImageUrl,
-  cardSvgUrl,
+  eventId,
+  clientId,
+  category = 'all',
   shareCaption,
+  eventTitle,
   rank,
-  shareUrl,
+  cardImageUrl,
 }) => {
-  let blob = null
-  try {
-    blob = await exportLeaderboardCardBlob(cardElement, { cardImageUrl, cardSvgUrl })
-  } catch {
-    blob = null
-  }
+  const shareUrl = buildLeaderboardFacebookShareUrl({ eventId, clientId, category })
+  const appUrl = buildLeaderboardClientUrl(eventId)
+  const captionWithLink = appUrl ? `${shareCaption}\n\n${appUrl}` : shareCaption
+  const ogTitle = buildLeaderboardOgTitle({ rank, eventTitle })
 
-  if (!blob) {
+  if (!hasFacebookAppId()) {
     return {
       ok: false,
-      reason: 'export_failed',
+      reason: 'missing_app_id',
       opened: false,
       copied: false,
       downloaded: false,
-      message: 'Could not prepare rank card image. Try again or use Copy link.',
+      message: 'Facebook sharing needs VITE_FACEBOOK_APP_ID. Rebuild the client after setting it.',
     }
   }
 
-  const captionLines = [shareCaption]
-  if (shareUrl) captionLines.push(shareUrl)
-  const copied = await copyTextToClipboard(captionLines.filter(Boolean).join('\n\n'))
+  if (!shareUrl) {
+    return { ok: false, reason: 'missing_url', opened: false, copied: false, downloaded: false }
+  }
 
-  const filename =
-    rank != null ? `fitness365-rank-${rank}.png` : 'fitness365-leaderboard-rank.png'
-  const downloaded = downloadBlob(blob, filename)
+  const copied = await copyTextToClipboard(captionWithLink)
 
-  if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare) {
-    try {
-      const file = new File([blob], filename, { type: 'image/png' })
-      const withFile = { text: shareCaption, files: [file] }
-      if (navigator.canShare(withFile)) {
-        await navigator.share(withFile)
-        return {
-          ok: true,
-          method: 'native_photo',
-          opened: true,
-          copied,
-          downloaded,
-          mode: 'native_photo',
-        }
-      }
-    } catch (err) {
-      if (err?.name === 'AbortError') {
-        return { ok: false, reason: 'cancelled', opened: false, copied, downloaded }
+  if (!isLocalDevelopmentUrl(shareUrl)) {
+    const feedOpened = openFacebookFeedDialog({
+      link: shareUrl,
+      picture: cardImageUrl,
+      name: ogTitle,
+      description: shareCaption,
+    })
+    if (feedOpened) {
+      return {
+        ok: true,
+        method: 'facebook_feed_dialog',
+        opened: true,
+        copied,
+        downloaded: false,
+        mode: 'timeline_with_preview',
       }
     }
   }
 
-  const opened = openFacebookHome()
-
-  return {
-    ok: true,
-    method: 'photo_upload',
-    opened,
-    copied,
-    downloaded,
-    mode: 'photo_post',
-  }
+  return shareToFacebook({
+    shareUrl,
+    shareCaption: captionWithLink,
+    imageUrl: cardImageUrl,
+    hashtag: null,
+    preCopyCaption: false,
+    preferDialogPopup: false,
+  })
 }
 
 export const shareLeaderboardNative = async ({ eventTitle, shareCaption, shareUrl, imageUrl }) =>
