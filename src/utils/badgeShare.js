@@ -59,6 +59,14 @@ export const getClientAppOrigin = () => {
   return import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5173'
 }
 
+/** Same-origin proxy for CDN images (html2canvas / canvas export). */
+export const buildShareMediaProxyUrl = (imageUrl) => {
+  if (!imageUrl || typeof imageUrl !== 'string') return ''
+  const origin = getPublicShareOrigin()
+  if (!origin) return imageUrl
+  return `${origin}/share/media-proxy?url=${encodeURIComponent(imageUrl)}`
+}
+
 /**
  * Canonical URL Facebook crawls for badge image/title preview (server-rendered OG page).
  */

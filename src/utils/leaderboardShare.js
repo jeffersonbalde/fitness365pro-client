@@ -57,6 +57,21 @@ export const buildLeaderboardShareCardUrl = ({ eventId, clientId, category = 'al
   return base
 }
 
+/** SVG rank card (fallback when PNG generation fails). */
+export const buildLeaderboardShareCardSvgUrl = ({ eventId, clientId, category = 'all' }) => {
+  if (!eventId || !clientId) return ''
+  const origin = getPublicShareOrigin()
+  const base = `${origin}/share/leaderboard/${encodeURIComponent(String(eventId))}/${encodeURIComponent(String(clientId))}/card.svg`
+  const cat = String(category || '').trim()
+  if (cat && cat !== 'all') {
+    return `${base}?category=${encodeURIComponent(cat)}`
+  }
+  return base
+}
+
+/** Same-origin proxy for CDN images (html2canvas export). */
+export { buildShareMediaProxyUrl } from './badgeShare'
+
 export const buildLeaderboardClientUrl = (eventId) => {
   if (!eventId) return ''
   const origin = getClientAppOrigin().replace(/\/$/, '')
@@ -153,13 +168,14 @@ export const buildLeaderboardOgTitle = ({ rank, eventTitle }) => {
 export const shareLeaderboardToFacebook = async ({
   cardElement,
   cardImageUrl,
+  cardSvgUrl,
   shareCaption,
   rank,
   shareUrl,
 }) => {
   let blob = null
   try {
-    blob = await exportLeaderboardCardBlob(cardElement, { cardImageUrl })
+    blob = await exportLeaderboardCardBlob(cardElement, { cardImageUrl, cardSvgUrl })
   } catch {
     blob = null
   }

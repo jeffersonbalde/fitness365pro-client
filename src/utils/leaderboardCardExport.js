@@ -1,10 +1,13 @@
 /**
- * Rank-card PNG for Facebook: server card.png first (no CDN CORS), html2canvas fallback.
+ * Rank-card PNG for Facebook: server card.png first, then SVG/canvas, then html2canvas.
  */
 
 import html2canvas from 'html2canvas'
+import { buildShareMediaProxyUrl } from './badgeShare'
 
 const EXPORT_TIMEOUT_MS = 18000
+const CARD_W = 1200
+const CARD_H = 630
 
 const withTimeout = (promise, ms, label = 'operation') =>
   Promise.race([
@@ -58,23 +61,108 @@ export const fetchLeaderboardCardBlob = async (cardImageUrl, timeoutMs = EXPORT_
   }
 }
 
-export const exportLeaderboardCardBlob = async (element, { cardImageUrl } = {}) => {
+const rasterizeSvgBlob = async (svgUrl) => {
+  if (!svgUrl) return null
+
+  try {
+    const res = await fetch(svgUrl, { credentials: 'omit', cache: 'no-store' })
+    if (!res.ok) return null
+    const svgText = await res.text()
+    if (!svgText.includes('<svg')) return null
+
+    const blob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' })
+    const objectUrl = URL.createObjectURL(blob)
+    try {
+      const img = new Image()
+      img.decoding = 'async'
+      await withTimeout(
+        new Promise((resolve, reject) => {
+          img.onload = () => resolve()
+          img.onerror = () => reject(new Error('svg load failed'))
+          img.src = objectUrl
+        }),
+        12000,
+        'svg rasterize',
+      )
+
+      const canvas = document.createElement('canvas')
+      canvas.width = CARD_W
+      canvas.height = CARD_H
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return null
+      ctx.fillStyle = '#0f172a'
+      ctx.fillRect(0, 0, CARD_W, CARD_H)
+      ctx.drawImage(img, 0, 0, CARD_W, CARD_H)
+
+      return await new Promise((resolve) => {
+        canvas.toBlob((b) => resolve(b), 'image/png', 0.92)
+      })
+    } finally {
+      URL.revokeObjectURL(objectUrl)
+    }
+  } catch {
+    return null
+  }
+}
+
+const prepareElementImagesForCapture = async (element) => {
+  const restores = []
+  const imgs = element.querySelectorAll('img')
+
+  for (const img of imgs) {
+    const original = img.currentSrc || img.src
+    if (!original || original.includes('/share/media-proxy')) continue
+
+    const proxied = buildShareMediaProxyUrl(original)
+    if (!proxied || proxied === original) continue
+
+    restores.push({ img, original })
+    img.crossOrigin = 'anonymous'
+    img.src = proxied
+    await new Promise((resolve) => {
+      if (img.complete) resolve()
+      else {
+        img.onload = () => resolve()
+        img.onerror = () => resolve()
+      }
+    })
+  }
+
+  return () => {
+    for (const { img, original } of restores) {
+      img.src = original
+      img.removeAttribute('crossorigin')
+    }
+  }
+}
+
+export const exportLeaderboardCardBlob = async (
+  element,
+  { cardImageUrl, cardSvgUrl } = {},
+) => {
   if (cardImageUrl) {
     const remote = await fetchLeaderboardCardBlob(cardImageUrl)
     if (remote) return remote
   }
 
+  if (cardSvgUrl) {
+    const fromSvg = await rasterizeSvgBlob(cardSvgUrl)
+    if (fromSvg) return fromSvg
+  }
+
   if (!element) return null
 
-  await waitForImages(element)
-
+  let restoreImages = () => {}
   try {
+    restoreImages = await prepareElementImagesForCapture(element)
+    await waitForImages(element)
+
     const canvas = await withTimeout(
       html2canvas(element, {
         backgroundColor: '#0f172a',
         scale: Math.min(2, window.devicePixelRatio || 2),
-        useCORS: false,
-        allowTaint: true,
+        useCORS: true,
+        allowTaint: false,
         logging: false,
       }),
       EXPORT_TIMEOUT_MS,
@@ -90,6 +178,8 @@ export const exportLeaderboardCardBlob = async (element, { cardImageUrl } = {}) 
     })
   } catch {
     return null
+  } finally {
+    restoreImages()
   }
 }
 

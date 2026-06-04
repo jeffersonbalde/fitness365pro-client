@@ -6,6 +6,7 @@ import { trackEvent } from '../../utils/telemetry'
 import {
   buildLeaderboardShareCaption,
   buildLeaderboardShareCardUrl,
+  buildLeaderboardShareCardSvgUrl,
   buildLeaderboardShareText,
   buildLeaderboardShareUrl,
   canUseNativeShare,
@@ -53,6 +54,16 @@ function LeaderboardShareModalBody({
   const cardImageSrc = useMemo(
     () =>
       buildLeaderboardShareCardUrl({
+        eventId,
+        clientId,
+        category: categoryFilter,
+      }),
+    [eventId, clientId, categoryFilter],
+  )
+
+  const cardSvgSrc = useMemo(
+    () =>
+      buildLeaderboardShareCardSvgUrl({
         eventId,
         clientId,
         category: categoryFilter,
@@ -185,6 +196,7 @@ function LeaderboardShareModalBody({
       const result = await shareLeaderboardToFacebook({
         cardElement: cardEl,
         cardImageUrl: cardImageSrc,
+        cardSvgUrl: cardSvgSrc,
         shareCaption,
         rank,
         shareUrl,
