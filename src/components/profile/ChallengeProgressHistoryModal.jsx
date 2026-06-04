@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AppModalTransition from '../AppModalTransition.jsx'
 import { apiRequest, ensureAccessToken } from '../../utils/api'
+import { resolveEarnedRewardThumbnailUrl } from '../../utils/mediaUrl'
 import './ChallengeProgressHistoryModal.css'
 
 /** Unmount timeouts — slightly longer than challenge-history-detail-leave / lb-leave in CSS */
@@ -193,6 +194,20 @@ export default function ChallengeProgressHistoryModal({
     [resolveMediaUrl],
   )
 
+  const resolveRewardImg = useCallback(
+    (row) => {
+      if (!row || typeof row !== 'object') return resolveImg(row?.image_url || row?.imageUrl)
+      return resolveEarnedRewardThumbnailUrl(
+        {
+          image_url: row.image_url || row.imageUrl,
+          base_image_url: row.base_image_url || row.image_url || row.imageUrl,
+        },
+        resolveMediaUrl,
+      )
+    },
+    [resolveImg, resolveMediaUrl],
+  )
+
   useEffect(() => {
     if (!open || !eventId) {
       setPayload(null)
@@ -222,6 +237,7 @@ export default function ChallengeProgressHistoryModal({
         await ensureAccessToken()
         const res = await apiRequest(historyPath, {
           method: 'GET',
+          timeoutMs: 45000,
         })
         if (cancelled) return
         if (res.data?.success && res.data?.data) {
@@ -421,7 +437,7 @@ export default function ChallengeProgressHistoryModal({
                           {b.imageUrl ? (
                             <img
                               className="challenge-history-badge-chip-img"
-                              src={resolveImg(b.imageUrl)}
+                              src={resolveRewardImg(b)}
                               alt=""
                             />
                           ) : (

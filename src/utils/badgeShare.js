@@ -79,7 +79,7 @@ export const isLaravelShareUrl = (url) => {
   if (!url || typeof url !== 'string') return false
   try {
     const { pathname } = new URL(url)
-    return pathname.includes('/share/event/') || pathname.includes('/share/leaderboard/') || pathname.includes('/share/badge/')
+    return pathname.includes('/share/event/') || pathname.includes('/share/leaderboard/') || pathname.includes('/share/badge/') || pathname.includes('/share/trophy/')
   } catch {
     return false
   }
@@ -111,6 +111,13 @@ export const buildBadgeShareUrl = ({ clientId, eventId, badgeKey }) => {
   return `${origin}/share/badge/${encodeURIComponent(String(clientId))}/${encodeURIComponent(String(eventId))}/${encodedKey}`
 }
 
+export const buildTrophyShareUrl = ({ clientId, eventId, trophyKey }) => {
+  if (!clientId || !eventId || !trophyKey) return ''
+  const origin = getPublicShareOrigin()
+  const encodedKey = encodeURIComponent(String(trophyKey))
+  return `${origin}/share/trophy/${encodeURIComponent(String(clientId))}/${encodeURIComponent(String(eventId))}/${encodedKey}`
+}
+
 /** In-app badge page (React route). */
 export const buildBadgeClientUrl = ({ clientId, eventId, badgeKey }) => {
   if (!clientId || !eventId || !badgeKey) return ''
@@ -119,23 +126,27 @@ export const buildBadgeClientUrl = ({ clientId, eventId, badgeKey }) => {
   return `${origin}/badge/${encodeURIComponent(String(clientId))}/${encodeURIComponent(String(eventId))}/${encodedKey}`
 }
 
-export const buildBadgeShareText = ({ ownerName, badgeTitle, eventTitle, shareUrl }) => {
+export const buildBadgeShareText = ({ ownerName, badgeTitle, eventTitle, shareUrl, kind = 'badge' }) => {
   const who = ownerName?.trim() || 'I'
-  const badge = badgeTitle?.trim() || 'a challenge badge'
+  const reward = badgeTitle?.trim() || (kind === 'trophy' ? 'a challenge trophy' : 'a challenge badge')
   const event = eventTitle?.trim() || 'a Fitness 365 Pro challenge'
+  const verb = kind === 'trophy' ? 'won' : 'earned'
+  const noun = kind === 'trophy' ? 'trophy' : 'badge'
   const lines = [
-    `${who} earned the "${badge}" badge in ${event}!`,
+    `${who} ${verb} the "${reward}" ${noun} in ${event}!`,
     'Verified achievement on Fitness 365 Pro.',
   ]
   if (shareUrl) lines.push(shareUrl)
   return lines.join('\n')
 }
 
-export const buildBadgeShareCaption = ({ ownerName, badgeTitle, eventTitle }) => {
+export const buildBadgeShareCaption = ({ ownerName, badgeTitle, eventTitle, kind = 'badge' }) => {
   const who = ownerName?.trim() || 'I'
-  const badge = badgeTitle?.trim() || 'a challenge badge'
+  const reward = badgeTitle?.trim() || (kind === 'trophy' ? 'a challenge trophy' : 'a challenge badge')
   const event = eventTitle?.trim() || 'a Fitness 365 Pro challenge'
-  return `${who} earned the "${badge}" badge in ${event}! Verified on Fitness 365 Pro. #Fitness365Pro #ChallengeComplete`
+  const verb = kind === 'trophy' ? 'won' : 'earned'
+  const noun = kind === 'trophy' ? 'trophy' : 'badge'
+  return `${who} ${verb} the "${reward}" ${noun} in ${event}! Verified on Fitness 365 Pro. #Fitness365Pro #ChallengeComplete`
 }
 
 /** Facebook link previews require a public HTTPS URL in production. */

@@ -6,6 +6,7 @@ import {
   buildBadgeShareCaption,
   buildBadgeShareText,
   buildBadgeShareUrl,
+  buildTrophyShareUrl,
   canUseNativeShare,
   copyTextToClipboard,
   downloadBadgeImage,
@@ -14,6 +15,7 @@ import {
   shareToFacebook,
   shareViaPlatform,
 } from '../../utils/badgeShare'
+import EarnedRewardShareImage from './EarnedRewardShareImage.jsx'
 import './BadgeShareModal.css'
 
 const formatEarnedDate = (iso) => {
@@ -43,9 +45,10 @@ function ShareActionButton({ label, sublabel, icon, onClick, busy, variant = 'de
   )
 }
 
-function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
+function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl, kind = 'badge' }) {
   const dismiss = useAppModalDismiss()
   const [busyKey, setBusyKey] = useState('')
+  const isTrophy = kind === 'trophy'
 
   const isPersonalizedReward = useMemo(() => {
     if (badge?.base_image_url) return true
@@ -54,43 +57,52 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
   }, [badge?.base_image_url, badge?.image_url])
 
   const imageSrc = useMemo(() => {
-    const raw = badge?.image_url || ''
-    return resolveMediaUrl ? resolveMediaUrl(raw) : raw
-  }, [badge?.image_url, resolveMediaUrl])
+    const raw = badge?.image_url || badge?.base_image_url || ''
+    return resolveMediaUrl ? resolveMediaUrl(String(raw)) : String(raw)
+  }, [badge?.image_url, badge?.base_image_url, resolveMediaUrl])
 
-  const badgeTitle = badge?.title || 'Challenge Badge'
+  const rewardTitle = badge?.title || (isTrophy ? 'Challenge Trophy' : 'Challenge Badge')
   const eventTitle = badge?.event_title || 'Challenge'
   const earnedLabel = formatEarnedDate(badge?.earned_at)
+  const rewardKey = isTrophy ? badge?.trophy_key : badge?.badge_key
 
   const shareUrl = useMemo(
     () =>
-      buildBadgeShareUrl({
-        clientId,
-        eventId: badge?.event_id,
-        badgeKey: badge?.badge_key,
-      }),
-    [clientId, badge?.event_id, badge?.badge_key],
+      isTrophy
+        ? buildTrophyShareUrl({
+            clientId,
+            eventId: badge?.event_id,
+            trophyKey: rewardKey,
+          })
+        : buildBadgeShareUrl({
+            clientId,
+            eventId: badge?.event_id,
+            badgeKey: rewardKey,
+          }),
+    [isTrophy, clientId, badge?.event_id, rewardKey],
   )
 
   const shareText = useMemo(
     () =>
       buildBadgeShareText({
         ownerName,
-        badgeTitle,
+        badgeTitle: rewardTitle,
         eventTitle,
         shareUrl,
+        kind,
       }),
-    [ownerName, badgeTitle, eventTitle, shareUrl],
+    [ownerName, rewardTitle, eventTitle, shareUrl, kind],
   )
 
   const shareCaption = useMemo(
     () =>
       buildBadgeShareCaption({
         ownerName,
-        badgeTitle,
+        badgeTitle: rewardTitle,
         eventTitle,
+        kind,
       }),
-    [ownerName, badgeTitle, eventTitle],
+    [ownerName, rewardTitle, eventTitle, kind],
   )
 
   const trackShare = useCallback(
@@ -142,10 +154,10 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
 
   const onDownload = () =>
     runShare('download', async () => {
-      const ok = await downloadBadgeImage(imageSrc, `fitness365-${badge?.badge_key || 'badge'}.png`)
+      const ok = await downloadBadgeImage(imageSrc, `fitness365-${rewardKey || (isTrophy ? 'trophy' : 'badge')}.png`)
       if (ok) {
         trackShare('download')
-        notifySuccess('Badge image downloaded!')
+        notifySuccess(isTrophy ? 'Trophy image downloaded!' : 'Badge image downloaded!')
       } else {
         notifyError('Could not download badge image.')
       }
@@ -154,7 +166,7 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
   const onNativeShare = () =>
     runShare('native', async () => {
       const result = await shareNative({
-        title: `${badgeTitle} — Fitness 365 Pro`,
+        title: `${rewardTitle} — Fitness 365 Pro`,
         text: shareCaption,
         shareUrl,
         imageUrl: imageSrc,
@@ -277,7 +289,9 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
     <>
       <div className="profile-social-modal-head">
         <div className="profile-social-modal-title-wrap">
-          <div className="profile-social-modal-title">Achievement Badge</div>
+          <div className="profile-social-modal-title">
+            {isTrophy ? 'Achievement Trophy' : 'Achievement Badge'}
+          </div>
           <div className="profile-social-modal-subtitle">Show off your verified challenge win</div>
         </div>
         <button type="button" className="profile-social-modal-close" onClick={dismiss} aria-label="Close">
@@ -288,24 +302,19 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
       <div className="badge-share-modal-body">
         <div className="badge-share-hero">
           <div className={`badge-share-image-ring ${isPersonalizedReward ? 'is-personalized-reward' : ''}`}>
-            {imageSrc ? (
-              <img
-                className={`badge-share-image ${isPersonalizedReward ? 'is-personalized-reward' : ''}`}
-                src={imageSrc}
-                alt={badgeTitle}
-              />
-            ) : (
-              <div
-                className={`badge-share-image-fallback ${isPersonalizedReward ? 'is-personalized-reward' : ''}`}
-                aria-hidden
-              />
-            )}
+            <EarnedRewardShareImage
+              item={badge}
+              resolveMediaUrl={resolveMediaUrl}
+              alt={rewardTitle}
+              className={`badge-share-image ${isPersonalizedReward ? 'is-personalized-reward' : ''}`}
+              fallbackClassName={`badge-share-image-fallback ${isPersonalizedReward ? 'is-personalized-reward' : ''}`}
+            />
           </div>
           <div className="badge-share-verified-pill">
             <span className="badge-share-verified-dot" aria-hidden />
             Verified on Fitness 365 Pro
           </div>
-          <h3 className="badge-share-title">{badgeTitle}</h3>
+          <h3 className="badge-share-title">{rewardTitle}</h3>
           <p className="badge-share-event">{eventTitle}</p>
           {earnedLabel ? <p className="badge-share-earned">Earned {earnedLabel}</p> : null}
           <p className="badge-share-owner">
@@ -423,7 +432,7 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
 
             <ShareActionButton
               label="Download"
-              sublabel="Save badge image"
+              sublabel={isTrophy ? 'Save trophy image' : 'Save badge image'}
               busy={Boolean(busyKey)}
               onClick={onDownload}
               icon={
@@ -441,7 +450,15 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl }) {
   )
 }
 
-export default function BadgeShareModal({ open, onRequestClose, badge, ownerName, clientId, resolveMediaUrl }) {
+export default function BadgeShareModal({
+  open,
+  onRequestClose,
+  badge,
+  ownerName,
+  clientId,
+  resolveMediaUrl,
+  kind = 'badge',
+}) {
   if (!badge) return null
 
   return (
@@ -456,6 +473,7 @@ export default function BadgeShareModal({ open, onRequestClose, badge, ownerName
         ownerName={ownerName}
         clientId={clientId}
         resolveMediaUrl={resolveMediaUrl}
+        kind={kind}
       />
     </AppModalTransition>
   )

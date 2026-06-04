@@ -596,6 +596,8 @@ const UserProfile = () => {
                       <ProfileEarnedEventTrophies
                         items={workoutStats.event_trophies}
                         resolveMediaUrl={resolveMediaUrl}
+                        ownerName={displayName}
+                        clientId={clientId || ''}
                       />
 
                       <div className="profile-side-divider" />

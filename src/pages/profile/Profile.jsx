@@ -1669,6 +1669,8 @@ const Profile = () => {
                       <ProfileEarnedEventTrophies
                         items={myStats?.event_trophies || []}
                         resolveMediaUrl={resolveMediaUrl}
+                        ownerName={displayName}
+                        clientId={client?.id || ''}
                       />
                     </div>
 
