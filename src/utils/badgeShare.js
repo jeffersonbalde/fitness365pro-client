@@ -14,9 +14,18 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_LARAVEL_API || 'http://localhost:8000/api'
 
+/** Production Laravel mount (OG pages live here, NOT on the React SPA alone). */
+const PRODUCTION_LARAVEL_SHARE_ORIGIN = 'https://fitness365pro.com/fitness365pro-server'
+
 const normalizeOrigin = (value) => {
   if (!value || !String(value).trim()) return ''
   return String(value).trim().replace(/\/$/, '')
+}
+
+const isProductionFitnessSite = () => {
+  if (typeof window === 'undefined') return false
+  const host = window.location.hostname.toLowerCase()
+  return host === 'fitness365pro.com' || host === 'www.fitness365pro.com'
 }
 
 /** Laravel API origin (where /share/event and /share/badge routes live). */
@@ -27,28 +36,53 @@ export const getApiShareOrigin = () => normalizeOrigin(API_BASE_URL.replace(/\/a
  * Must be the Laravel host — NOT the React SPA (fitness365pro.com alone has no OG tags).
  */
 export const getPublicShareOrigin = () => {
-  const apiOrigin = getApiShareOrigin()
+  let apiOrigin = getApiShareOrigin()
 
-  // OG pages (/share/*) are served only by Laravel — always prefer the API host from VITE_LARAVEL_API.
-  if (apiOrigin) {
+  if (isProductionFitnessSite()) {
+    const onProd = window.location.origin.replace(/\/$/, '')
+    const prodApiOnSameHost = `${onProd}/fitness365pro-server`
+
+    if (!apiOrigin || isLocalDevelopmentUrl(`${apiOrigin}/`)) {
+      return PRODUCTION_LARAVEL_SHARE_ORIGIN
+    }
+
+    if (apiOrigin === onProd || apiOrigin === `${onProd}/api`) {
+      return prodApiOnSameHost
+    }
+
+    if (apiOrigin.includes('fitness365pro.com') && !apiOrigin.includes('/fitness365pro-server')) {
+      return prodApiOnSameHost
+    }
+  }
+
+  if (apiOrigin && !isLocalDevelopmentUrl(`${apiOrigin}/`)) {
     return apiOrigin
   }
 
   const configured = normalizeOrigin(import.meta.env.VITE_PUBLIC_APP_URL)
-  if (configured) {
+  if (configured && !isLocalDevelopmentUrl(`${configured}/`)) {
     return configured
   }
 
-  const frontendEnv = normalizeOrigin(import.meta.env.VITE_FRONTEND_URL)
-  if (frontendEnv) {
-    return frontendEnv
-  }
-
   if (typeof window !== 'undefined' && window.location?.origin) {
+    if (isProductionFitnessSite()) {
+      return PRODUCTION_LARAVEL_SHARE_ORIGIN
+    }
     return normalizeOrigin(window.location.origin)
   }
 
   return ''
+}
+
+/** True when URL hits Laravel /share/* (Facebook can scrape OG tags). */
+export const isLaravelShareUrl = (url) => {
+  if (!url || typeof url !== 'string') return false
+  try {
+    const { pathname } = new URL(url)
+    return pathname.includes('/share/event/') || pathname.includes('/share/leaderboard/') || pathname.includes('/share/badge/')
+  } catch {
+    return false
+  }
 }
 
 /** Client SPA origin for in-app navigation. */

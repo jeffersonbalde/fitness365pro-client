@@ -198,24 +198,31 @@ export const buildFacebookDialogShareUrl = ({ shareUrl, hashtag = null }) => {
   return `https://www.facebook.com/dialog/share?${params.toString()}`
 }
 
-export const openFacebookLegacySharerPopup = (shareUrl) => {
+export const openFacebookLegacySharerPopup = (shareUrl, shareCaption = '') => {
   if (!shareUrl || typeof window === 'undefined') return false
 
   const params = new URLSearchParams({
     u: shareUrl,
     display: 'popup',
   })
+  if (shareCaption) {
+    params.set('quote', shareCaption)
+  }
   const appId = getFacebookAppId()
   if (appId) {
     params.set('app_id', appId)
   }
 
   const url = `https://www.facebook.com/sharer/sharer.php?${params.toString()}`
-  const w = 626
-  const h = 436
+  const w = 680
+  const h = 720
   const left = Math.max(0, (window.screen.width - w) / 2)
   const top = Math.max(0, (window.screen.height - h) / 2)
-  const popup = window.open(url, 'facebook-sharer', `width=${w},height=${h},left=${left},top=${top}`)
+  const popup = window.open(
+    url,
+    'f365-facebook-share',
+    `width=${w},height=${h},left=${left},top=${top},scrollbars=yes,resizable=yes`,
+  )
 
   return Boolean(popup)
 }

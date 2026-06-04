@@ -192,6 +192,11 @@ function LeaderboardShareModalBody({
         return
       }
 
+      if (result.reason === 'bad_share_url') {
+        notifyError(result.message || 'Share link misconfigured.')
+        return
+      }
+
       if (result.reason === 'local_dev') {
         notifyError(result.message || 'Share from production to preview on Facebook.')
         return
@@ -199,7 +204,7 @@ function LeaderboardShareModalBody({
 
       if (result.ok) {
         notifySuccess(
-          'Facebook opened with your rank card link. If the preview is empty, paste from clipboard (Ctrl+V) — do not type the link manually.',
+          'Facebook opened with your leaderboard link. You should see the event image and rank in the preview.',
         )
         return
       }

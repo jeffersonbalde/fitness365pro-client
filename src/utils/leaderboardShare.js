@@ -2,7 +2,7 @@
  * Share links and captions for event leaderboard standings.
  */
 
-import { getClientAppOrigin, getPublicShareOrigin } from './badgeShare'
+import { getClientAppOrigin, getPublicShareOrigin, isLaravelShareUrl } from './badgeShare'
 import {
   canUseNativeShare,
   copyTextToClipboard,
@@ -14,7 +14,6 @@ import {
   isLocalDevelopmentUrl,
   openFacebookFeedDialog,
   openFacebookLegacySharerPopup,
-  openFacebookShareDialog,
 } from './facebookShare'
 
 export { canUseNativeShare, copyTextToClipboard, shareViaPlatform }
@@ -34,7 +33,7 @@ export const buildLeaderboardShareUrl = ({ eventId, clientId, category = 'all' }
 }
 
 /**
- * Facebook crawls this URL for rank-card preview (under /share/event/ like event shares).
+ * Facebook crawls this URL for preview (Laravel OG page under /share/event/.../standing/).
  */
 export const buildLeaderboardFacebookShareUrl = ({ eventId, clientId, category = 'all' }) => {
   if (!eventId || !clientId) return ''
@@ -52,18 +51,6 @@ export const buildLeaderboardShareCardUrl = ({ eventId, clientId, category = 'al
   if (!eventId || !clientId) return ''
   const origin = getPublicShareOrigin()
   const base = `${origin}/share/leaderboard/${encodeURIComponent(String(eventId))}/${encodeURIComponent(String(clientId))}/card.png`
-  const cat = String(category || '').trim()
-  if (cat && cat !== 'all') {
-    return `${base}?category=${encodeURIComponent(cat)}`
-  }
-  return base
-}
-
-/** SVG rank card (fallback when PNG generation fails). */
-export const buildLeaderboardShareCardSvgUrl = ({ eventId, clientId, category = 'all' }) => {
-  if (!eventId || !clientId) return ''
-  const origin = getPublicShareOrigin()
-  const base = `${origin}/share/leaderboard/${encodeURIComponent(String(eventId))}/${encodeURIComponent(String(clientId))}/card.svg`
   const cat = String(category || '').trim()
   if (cat && cat !== 'all') {
     return `${base}?category=${encodeURIComponent(cat)}`
@@ -124,7 +111,6 @@ export const buildLeaderboardShareCaption = ({
   goalCompleted,
   categoryLabel,
 }) => {
-  const who = ownerName?.trim() || 'I'
   const event = eventTitle?.trim() || 'this event'
   const place = rank != null ? `#${rank}` : 'on the leaderboard'
 
@@ -146,12 +132,6 @@ export const buildLeaderboardShareCaption = ({
   return `I'm ranked ${place} in "${event}" on Fitness 365 Pro${stats}.`
 }
 
-export const buildLeaderboardShareCaptionWithLink = (params, standingUrl) => {
-  const caption = buildLeaderboardShareCaption(params)
-  if (!standingUrl) return caption
-  return `${caption}\n${standingUrl}`
-}
-
 export const buildLeaderboardOgTitle = ({ rank, eventTitle }) => {
   const event = eventTitle?.trim() || 'Fitness 365 Pro'
   if (rank != null) {
@@ -161,8 +141,7 @@ export const buildLeaderboardOgTitle = ({ rank, eventTitle }) => {
 }
 
 /**
- * Facebook share dialog with rank-card OG preview (never download-to-device).
- * Uses Laravel standing URL so Meta can scrape og:image (card.png).
+ * Facebook: sharer popup with Laravel standing URL (never SPA /share/* on fitness365pro.com).
  */
 export const shareLeaderboardToFacebook = async ({
   eventId,
@@ -188,8 +167,27 @@ export const shareLeaderboardToFacebook = async ({
     }
   }
 
-  if (!shareUrl) {
-    return { ok: false, reason: 'missing_url', opened: false, copied: false, downloaded: false }
+  if (!shareUrl || !isLaravelShareUrl(shareUrl)) {
+    return {
+      ok: false,
+      reason: 'bad_share_url',
+      opened: false,
+      copied: false,
+      downloaded: false,
+      message:
+        'Share link is misconfigured. Rebuild client with VITE_LARAVEL_API=https://fitness365pro.com/fitness365pro-server/api',
+    }
+  }
+
+  if (isLocalDevelopmentUrl(shareUrl)) {
+    return {
+      ok: false,
+      reason: 'local_dev',
+      opened: false,
+      copied: false,
+      downloaded: false,
+      message: 'Facebook preview requires production URLs. Share from fitness365pro.com.',
+    }
   }
 
   const captionForClipboard = appUrl
@@ -198,18 +196,7 @@ export const shareLeaderboardToFacebook = async ({
 
   const copied = await copyTextToClipboard(captionForClipboard)
 
-  if (isLocalDevelopmentUrl(shareUrl)) {
-    return {
-      ok: false,
-      reason: 'local_dev',
-      opened: false,
-      copied,
-      downloaded: false,
-      message: 'Facebook preview requires production URLs. Deploy and share from fitness365pro.com.',
-    }
-  }
-
-  const sharerOpened = openFacebookLegacySharerPopup(shareUrl)
+  const sharerOpened = openFacebookLegacySharerPopup(shareUrl, shareCaption)
   if (sharerOpened) {
     return {
       ok: true,
@@ -217,6 +204,7 @@ export const shareLeaderboardToFacebook = async ({
       opened: true,
       copied,
       downloaded: false,
+      shareUrl,
       mode: 'timeline_with_preview',
     }
   }
@@ -234,24 +222,9 @@ export const shareLeaderboardToFacebook = async ({
       opened: true,
       copied,
       downloaded: false,
+      shareUrl,
       mode: 'timeline_with_preview',
     }
-  }
-
-  const sdkResult = await openFacebookShareDialog({ shareUrl, hashtag: null })
-  if (sdkResult.ok) {
-    return {
-      ok: true,
-      method: 'facebook_share_dialog',
-      opened: true,
-      copied,
-      downloaded: false,
-      mode: 'timeline_with_preview',
-    }
-  }
-
-  if (sdkResult.reason === 'cancelled') {
-    return { ok: false, reason: 'cancelled', opened: false, copied, downloaded: false }
   }
 
   return {
@@ -260,6 +233,7 @@ export const shareLeaderboardToFacebook = async ({
     opened: false,
     copied,
     downloaded: false,
+    shareUrl,
     message: 'Allow pop-ups for Facebook, then try again.',
   }
 }
