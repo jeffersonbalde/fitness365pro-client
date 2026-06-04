@@ -51,9 +51,9 @@ export function resolveEarnedRewardThumbnailUrl(item, resolveMediaUrlFn = resolv
   return ''
 }
 
-/** Optional personalized overlay URL for share/download only. */
+/** Personalized PNG/SVG overlay URL (share/download + modal when PNG works). */
 export function resolveEarnedRewardPersonalizedUrl(item, resolveMediaUrlFn = resolveMediaUrl) {
-  const raw = item?.personalized_image_url || item?.image_url
+  const raw = item?.personalized_image_url
   if (!raw || !isPersonalizedRewardPath(raw)) return ''
   return resolveMediaUrlFn(String(raw))
 }

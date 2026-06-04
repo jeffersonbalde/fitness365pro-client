@@ -305,6 +305,7 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl, kind
             <EarnedRewardShareImage
               item={badge}
               resolveMediaUrl={resolveMediaUrl}
+              ownerName={ownerName}
               alt={rewardTitle}
             />
           </div>

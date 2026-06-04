@@ -1,36 +1,24 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { resolveEarnedRewardThumbnailUrl } from '../../utils/mediaUrl'
+import React from 'react'
+import EarnedRewardArtwork from './EarnedRewardArtwork.jsx'
 
 /**
- * Badge/trophy tile image — uses base artwork (media proxy) with fallback to personalized URL.
+ * Badge/trophy sidebar tile — base artwork with runner name ribbon.
  */
-export default function EarnedRewardThumbnail({ item, resolveMediaUrl, alt, className = 'profile-earned-event-reward-img' }) {
-  const primarySrc = useMemo(
-    () => resolveEarnedRewardThumbnailUrl(item, resolveMediaUrl),
-    [item, resolveMediaUrl],
-  )
-
-  const [src, setSrc] = useState(primarySrc)
-
-  useEffect(() => {
-    setSrc(primarySrc)
-  }, [primarySrc])
-
-  const handleError = useCallback(() => {
-    setSrc('')
-  }, [])
-
-  if (!src) {
-    return <div className="profile-earned-event-reward-fallback" aria-hidden />
-  }
-
+export default function EarnedRewardThumbnail({
+  item,
+  resolveMediaUrl,
+  ownerName = '',
+  alt,
+  className = 'profile-earned-event-reward-img',
+}) {
   return (
-    <img
-      className={className}
-      src={src}
+    <EarnedRewardArtwork
+      item={item}
+      resolveMediaUrl={resolveMediaUrl}
+      ownerName={ownerName}
       alt={alt}
-      loading="lazy"
-      onError={handleError}
+      variant="tile"
+      imgClassName={className}
     />
   )
 }

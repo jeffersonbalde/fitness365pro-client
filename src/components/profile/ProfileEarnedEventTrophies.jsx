@@ -51,6 +51,7 @@ export default function ProfileEarnedEventTrophies({
                       <EarnedRewardThumbnail
                         item={t}
                         resolveMediaUrl={resolveMediaUrl}
+                        ownerName={ownerName}
                         alt={t.title || 'Event trophy'}
                       />
                     </div>

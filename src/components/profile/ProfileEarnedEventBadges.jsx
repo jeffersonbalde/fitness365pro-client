@@ -49,6 +49,7 @@ export default function ProfileEarnedEventBadges({
                       <EarnedRewardThumbnail
                         item={b}
                         resolveMediaUrl={resolveMediaUrl}
+                        ownerName={ownerName}
                         alt={b.title || 'Event badge'}
                       />
                     </div>

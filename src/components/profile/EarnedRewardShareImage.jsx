@@ -1,29 +1,62 @@
-import React from 'react'
-import { resolveEarnedRewardThumbnailUrl } from '../../utils/mediaUrl'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  resolveEarnedRewardPersonalizedUrl,
+  resolveEarnedRewardThumbnailUrl,
+} from '../../utils/mediaUrl'
+import EarnedRewardArtwork from './EarnedRewardArtwork.jsx'
 
 /**
- * Large reward image for share modals — always uses base CMS artwork (media proxy).
- * Personalized /share/reward URLs are not used here; they often render as broken SVG in <img>.
+ * Share modal reward — try server-rendered PNG with name; fall back to base + CSS ribbon.
  */
 export default function EarnedRewardShareImage({
   item,
   resolveMediaUrl,
+  ownerName = '',
   alt,
   className = 'badge-share-image',
   fallbackClassName = 'badge-share-image-fallback',
 }) {
-  const src = resolveEarnedRewardThumbnailUrl(item, resolveMediaUrl)
+  const personalizedPng = useMemo(() => {
+    const url = resolveEarnedRewardPersonalizedUrl(item, resolveMediaUrl)
+    if (!url || /\.svg($|\?)/i.test(url)) return ''
+    return url
+  }, [item, resolveMediaUrl])
 
-  if (!src) {
+  const [usePersonalized, setUsePersonalized] = useState(Boolean(personalizedPng))
+
+  useEffect(() => {
+    setUsePersonalized(Boolean(personalizedPng))
+  }, [personalizedPng])
+
+  const handlePersonalizedError = useCallback(() => {
+    setUsePersonalized(false)
+  }, [])
+
+  if (usePersonalized && personalizedPng) {
+    return (
+      <img
+        className={className}
+        src={personalizedPng}
+        alt={alt}
+        loading="eager"
+        onError={handlePersonalizedError}
+      />
+    )
+  }
+
+  const baseSrc = resolveEarnedRewardThumbnailUrl(item, resolveMediaUrl)
+  if (!baseSrc) {
     return <div className={fallbackClassName} aria-hidden />
   }
 
   return (
-    <img
-      className={className}
-      src={src}
+    <EarnedRewardArtwork
+      item={item}
+      resolveMediaUrl={resolveMediaUrl}
+      ownerName={ownerName}
       alt={alt}
-      loading="eager"
+      variant="hero"
+      imgClassName={className}
     />
   )
 }

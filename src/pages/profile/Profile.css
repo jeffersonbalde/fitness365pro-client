@@ -937,6 +937,20 @@
 
 .profile-page .profile-earned-event-reward-img{width:100%;height:100%;object-fit:contain;object-position:center;display:block}
 
+.profile-earned-reward-artwork{position:relative;width:100%;height:100%;overflow:hidden;border-radius:inherit;display:flex;flex-direction:column;justify-content:flex-end}
+
+.profile-earned-reward-artwork .profile-earned-event-reward-img{flex:1 1 auto;min-height:0}
+
+.profile-earned-reward-name-ribbon{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:3px 5px;background:rgba(10,15,25,.82);color:#fff;font-weight:800;text-align:center;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;box-shadow:0 -4px 12px rgba(0,0,0,.25)}
+
+.profile-earned-reward-artwork.is-tile .profile-earned-reward-name-ribbon{font-size:.48rem;letter-spacing:.01em;padding:2px 4px}
+
+.profile-earned-reward-artwork.is-hero .profile-earned-reward-name-ribbon{font-size:.78rem;padding:7px 10px}
+
+.badge-share-image-ring .profile-earned-reward-artwork.is-hero,.badge-share-image-ring .profile-earned-reward-artwork.is-hero .badge-share-image{border-radius:12px}
+
+.badge-share-image-ring .profile-earned-reward-artwork.is-hero .profile-earned-reward-name-ribbon{font-size:.82rem;padding:8px 12px}
+
 .profile-page .profile-earned-event-reward-fallback{width:100%;height:100%;background:color-mix(in srgb,var(--app-border) 30%,transparent)}
 
 .profile-page .profile-earned-event-reward-caption{display:block;margin-top:8px;font-size:.69rem;font-weight:600;line-height:1.25;color:var(--app-text-muted,#64748b);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:88px}
