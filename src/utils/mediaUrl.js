@@ -57,3 +57,18 @@ export function resolveEarnedRewardPersonalizedUrl(item, resolveMediaUrlFn = res
   if (!raw || !isPersonalizedRewardPath(raw)) return ''
   return resolveMediaUrlFn(String(raw))
 }
+
+const isSvgUrl = (url) => String(url || '').toLowerCase().includes('.svg')
+
+/**
+ * Image URL Facebook can fetch for link previews (PNG/JPEG/CDN only — never SVG).
+ */
+export function buildRewardFacebookPictureUrl(item, resolveMediaUrlFn = resolveMediaUrl) {
+  const thumb = resolveEarnedRewardThumbnailUrl(item, resolveMediaUrlFn)
+  if (thumb && !isSvgUrl(thumb)) return thumb
+
+  const personalized = resolveEarnedRewardPersonalizedUrl(item, resolveMediaUrlFn)
+  if (personalized && !isSvgUrl(personalized)) return personalized
+
+  return thumb || ''
+}

@@ -7,6 +7,7 @@ import {
   hasFacebookAppId,
   isLocalDevelopmentUrl,
   openFacebookDialogSharePopup,
+  openFacebookFeedDialog,
   openFacebookLegacySharerPopup,
   openFacebookPageShare,
   openFacebookShareDialog,
@@ -223,6 +224,8 @@ export const shareToFacebook = async ({
   shareUrl,
   shareCaption,
   imageUrl,
+  pictureUrl,
+  name,
   hashtag = '#Fitness365Pro',
   preCopyCaption = true,
   preferDialogPopup = false,
@@ -261,6 +264,28 @@ export const shareToFacebook = async ({
       copied,
       downloaded,
       mode: 'timeline_local_dev_manual',
+    }
+  }
+
+  const picture = pictureUrl
+    || (imageUrl && !String(imageUrl).toLowerCase().includes('.svg') ? imageUrl : '')
+
+  if (picture && shareUrl) {
+    const feedOpened = openFacebookFeedDialog({
+      link: shareUrl,
+      picture,
+      name: name || 'Fitness 365 Pro Achievement',
+      description: shareCaption,
+    })
+    if (feedOpened) {
+      return {
+        ok: true,
+        method: 'facebook_feed_dialog',
+        opened: true,
+        copied,
+        downloaded: false,
+        mode: isPublicShareUrl(shareUrl) ? 'timeline_with_preview' : 'timeline_local_dev',
+      }
     }
   }
 

@@ -16,7 +16,11 @@ import {
   shareViaPlatform,
 } from '../../utils/badgeShare'
 import EarnedRewardShareImage from './EarnedRewardShareImage.jsx'
-import { resolveEarnedRewardPersonalizedUrl, resolveEarnedRewardThumbnailUrl } from '../../utils/mediaUrl'
+import {
+  buildRewardFacebookPictureUrl,
+  resolveEarnedRewardPersonalizedUrl,
+  resolveEarnedRewardThumbnailUrl,
+} from '../../utils/mediaUrl'
 import './BadgeShareModal.css'
 
 const formatEarnedDate = (iso) => {
@@ -62,6 +66,16 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl, kind
   }, [badge, displayImageSrc, resolveMediaUrl])
 
   const rewardTitle = badge?.title || (isTrophy ? 'Challenge Trophy' : 'Challenge Badge')
+
+  const facebookPictureUrl = useMemo(
+    () => buildRewardFacebookPictureUrl(badge, resolveMediaUrl),
+    [badge, resolveMediaUrl],
+  )
+
+  const facebookShareTitle = useMemo(() => {
+    const who = ownerName?.trim() || 'Member'
+    return `${rewardTitle} — ${who}`
+  }, [ownerName, rewardTitle])
   const eventTitle = badge?.event_title || 'Challenge'
   const earnedLabel = formatEarnedDate(badge?.earned_at)
   const rewardKey = isTrophy ? badge?.trophy_key : badge?.badge_key
@@ -185,6 +199,8 @@ function BadgeShareModalBody({ badge, ownerName, clientId, resolveMediaUrl, kind
         shareUrl,
         shareCaption,
         imageUrl: shareImageSrc,
+        pictureUrl: facebookPictureUrl,
+        name: facebookShareTitle,
       })
       trackShare('facebook')
 
