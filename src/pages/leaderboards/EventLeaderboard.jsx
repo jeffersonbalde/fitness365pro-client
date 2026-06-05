@@ -173,8 +173,8 @@ const EventLeaderboard = () => {
               <h1 className="leaderboard-title">{eventMeta?.title || 'Event Leaderboard'}</h1>
               <p className="leaderboard-subtitle">
                 {eventMeta
-                  ? `${eventMeta.participants_count ?? 0} participants ranked by logged progress`
-                  : 'Rankings update as participants log approved progress.'}
+                  ? `${eventMeta.participants_count ?? 0} participants ranked by finish order, then progress`
+                  : 'Rankings update when admin approves progress. Finishers rank by who completed the goal first.'}
               </p>
             </div>
             {viewerRank && (
