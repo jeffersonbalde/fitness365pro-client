@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { apiRequest, ensureAccessToken } from '../../utils/api'
+import { apiRequest } from '../../utils/api'
+import { getPageSnapshot, setPageSnapshot } from '../../utils/pageSnapshots'
 import { notifyError } from '../../utils/notifications'
 import { toEvent, deriveChallengeProgressCtas } from './eventCatalog'
 import ChallengeProgressHistoryModal from '../../components/profile/ChallengeProgressHistoryModal.jsx'
@@ -21,9 +22,10 @@ const resolveMediaUrl = (url) => {
 const Challenges = () => {
   const navigate = useNavigate()
   const fetchSeq = useRef(0)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => !getPageSnapshot('cms-events'))
   const [loadError, setLoadError] = useState(null)
-  const [challenges, setChallenges] = useState([])
+  const [challenges, setChallenges] = useState(() => getPageSnapshot('cms-events') || [])
+  const lastFetchAtRef = useRef(getPageSnapshot('cms-events-fetched-at') || 0)
   const [historyModal, setHistoryModal] = useState(null)
   const [shareEvent, setShareEvent] = useState(null)
 
@@ -50,12 +52,15 @@ const Challenges = () => {
     setLoadError(null)
 
     try {
-      await ensureAccessToken()
       const eventsRes = await apiRequest('/v1/cms/events', { method: 'GET' })
       if (seq !== fetchSeq.current) return
 
       if (eventsRes.data?.success) {
-        setChallenges(eventsRes.data?.data?.events || [])
+        const nextEvents = eventsRes.data?.data?.events || []
+        setChallenges(nextEvents)
+        setPageSnapshot('cms-events', nextEvents)
+        lastFetchAtRef.current = Date.now()
+        setPageSnapshot('cms-events-fetched-at', lastFetchAtRef.current)
       } else {
         const msg = eventsRes.data?.message || 'Events could not be loaded.'
         if (!silent) {
@@ -85,6 +90,7 @@ const Challenges = () => {
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return
+      if (Date.now() - lastFetchAtRef.current < 120_000) return
       loadChallenges({ silent: true })
     }
     document.addEventListener('visibilitychange', onVisible)

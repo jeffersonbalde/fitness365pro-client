@@ -1,4 +1,13 @@
 import { getApiBaseUrl } from './apiBaseUrl'
+import {
+  buildApiCacheKey,
+  dedupeInFlightRequest,
+  getCachedApiResponse,
+  resolveDefaultCacheTtl,
+  setCachedApiResponse,
+} from './apiCache'
+
+export { invalidateApiCache } from './apiCache'
 
 const API_BASE_URL = getApiBaseUrl()
 
@@ -219,15 +228,15 @@ const isPublicAuthEndpoint = (endpoint) =>
   || endpoint === '/v1/auth/verify-reset-token'
   || endpoint === '/v1/auth/reset-password'
 
-/**
- * Make API request
- */
-export const apiRequest = async (endpoint, options = {}) => {
+const executeApiRequest = async (endpoint, options = {}) => {
   const isPublicAuthEndpointCall = isPublicAuthEndpoint(endpoint)
   const isFormDataBody = options.body instanceof FormData
 
   if (!isPublicAuthEndpointCall && !options._retry) {
-    await ensureAccessToken()
+    const existing = getAccessToken()
+    if (!existing || isAccessTokenExpired()) {
+      await ensureAccessToken()
+    }
   }
 
   const token = getAccessToken()
@@ -255,7 +264,7 @@ export const apiRequest = async (endpoint, options = {}) => {
 
   const timeoutMs = Number(options.timeoutMs) > 0
     ? Number(options.timeoutMs)
-    : DEFAULT_REQUEST_TIMEOUT_MS
+    : (isFormDataBody ? 120000 : DEFAULT_REQUEST_TIMEOUT_MS)
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
   config.signal = controller.signal
@@ -348,4 +357,37 @@ export const apiRequest = async (endpoint, options = {}) => {
       },
     }
   }
+}
+
+/**
+ * Make API request (GET responses cached briefly to speed tab switches).
+ */
+export const apiRequest = async (endpoint, options = {}) => {
+  const method = String(options.method || 'GET').toUpperCase()
+  const isGet = method === 'GET' && !options.body
+  const cacheTtlMs = options.skipCache
+    ? 0
+    : (Number(options.cacheTtlMs) > 0
+      ? Number(options.cacheTtlMs)
+      : (isGet ? resolveDefaultCacheTtl(endpoint) : 0))
+
+  if (!isGet || cacheTtlMs <= 0 || options._retry) {
+    return executeApiRequest(endpoint, options)
+  }
+
+  const token = getAccessToken()
+  const cacheKey = buildApiCacheKey(token, method, endpoint)
+  const cached = getCachedApiResponse(cacheKey)
+  if (cached) {
+    return cached
+  }
+
+  return dedupeInFlightRequest(cacheKey, async () => {
+    const fresh = getCachedApiResponse(cacheKey)
+    if (fresh) return fresh
+
+    const result = await executeApiRequest(endpoint, options)
+    setCachedApiResponse(cacheKey, result, cacheTtlMs)
+    return result
+  })
 }

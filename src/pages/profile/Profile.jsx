@@ -269,20 +269,25 @@ const Profile = () => {
 
     let cancelled = false
 
-    const fetchProfileCore = async () => {
+    const fetchProfileData = async () => {
       setLoading(true)
       setSecondaryLoading(true)
+      setSuggestedBuddiesLoading(true)
       try {
         const [
           profileResponse,
           workoutsResponse,
           socialStatsResponse,
           goalsResponse,
+          suggestedResponse,
+          statsResponse,
         ] = await Promise.all([
           apiRequest('/v1/profile', { method: 'GET' }),
           apiRequest('/v1/workouts?limit=20', { method: 'GET' }),
           apiRequest('/v1/social/stats', { method: 'GET' }),
           apiRequest('/v1/onboarding/goals', { method: 'GET' }),
+          apiRequest('/v1/social/suggested-buddies?per_page=6', { method: 'GET' }),
+          apiRequest('/v1/workouts/stats', { method: 'GET' }),
         ])
 
         if (cancelled) return
@@ -304,27 +309,6 @@ const Profile = () => {
         if (socialStatsResponse.data.success) {
           setSocialStats(socialStatsResponse.data.data || socialStats)
         }
-      } catch (error) {
-        if (!cancelled) {
-          console.error('Failed to fetch profile/timeline:', error)
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      }
-    }
-
-    const fetchProfileSecondary = async () => {
-      setSuggestedBuddiesLoading(true)
-      try {
-        const [suggestedResponse, statsResponse] = await Promise.all([
-          apiRequest('/v1/social/suggested-buddies?per_page=6', { method: 'GET' }),
-          apiRequest('/v1/workouts/stats', { method: 'GET' }),
-        ])
-
-        if (cancelled) return
-
         if (suggestedResponse.data.success) {
           setSuggestedBuddies(suggestedResponse.data.data?.results || [])
         }
@@ -333,21 +317,18 @@ const Profile = () => {
         }
       } catch (error) {
         if (!cancelled) {
-          console.error('Failed to fetch profile stats/suggestions:', error)
+          console.error('Failed to fetch profile/timeline:', error)
         }
       } finally {
         if (!cancelled) {
+          setLoading(false)
           setSecondaryLoading(false)
           setSuggestedBuddiesLoading(false)
         }
       }
     }
 
-    fetchProfileCore().then(() => {
-      if (!cancelled) {
-        fetchProfileSecondary()
-      }
-    })
+    fetchProfileData()
 
     return () => {
       cancelled = true

@@ -18,10 +18,10 @@ const NotificationsPanel = ({ open, onClose, palette }) => {
   } = useNotifications()
 
   useEffect(() => {
-    if (open) {
-      fetchNotifications({ force: true })
+    if (open && !loaded) {
+      fetchNotifications()
     }
-  }, [open, fetchNotifications])
+  }, [open, loaded, fetchNotifications])
 
   const handleOpen = async (notification) => {
     if (!notification.is_read) {

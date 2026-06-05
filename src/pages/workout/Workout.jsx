@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { apiRequest } from '../../utils/api'
+import { apiRequest, invalidateApiCache } from '../../utils/api'
+import { clearPageSnapshot } from '../../utils/pageSnapshots'
 import { notifySuccess, notifyError } from '../../utils/notifications'
 import {
   isAcceptableWorkoutImageFile,
@@ -344,6 +345,9 @@ const Workout = () => {
       })
 
       if (res.data.success) {
+        invalidateApiCache('/v1/workouts')
+        invalidateApiCache('/v1/cms/feed')
+        clearPageSnapshot('dashboard-feed')
         notifySuccess(isPostEntry ? 'Post shared successfully.' : 'Workout logged successfully.', { icon: false })
         const returnTo = typeof location.state?.returnTo === 'string' ? location.state.returnTo : ''
         navigate(returnTo && returnTo.startsWith('/') ? returnTo : '/dashboard', { replace: true })

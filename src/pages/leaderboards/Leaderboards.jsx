@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { apiRequest, ensureAccessToken } from '../../utils/api'
+import { apiRequest } from '../../utils/api'
+import { getPageSnapshot, setPageSnapshot } from '../../utils/pageSnapshots'
 import { notifyError } from '../../utils/notifications'
 import { toEvent } from '../challenges/eventCatalog'
 import { AppLoadingState } from '../../components/AppLoadingState.jsx'
@@ -19,19 +20,20 @@ const resolveMediaUrl = (url) => {
 
 const Leaderboards = () => {
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => !getPageSnapshot('cms-events'))
   const [loadError, setLoadError] = useState(null)
-  const [events, setEvents] = useState([])
+  const [events, setEvents] = useState(() => getPageSnapshot('cms-events') || [])
 
   const loadEvents = useCallback(async () => {
     setLoading(true)
     setLoadError(null)
 
     try {
-      await ensureAccessToken()
       const response = await apiRequest('/v1/cms/events', { method: 'GET' })
       if (response.data?.success) {
-        setEvents(response.data?.data?.events || [])
+        const nextEvents = response.data?.data?.events || []
+        setEvents(nextEvents)
+        setPageSnapshot('cms-events', nextEvents)
       } else {
         const msg = response.data?.message || 'Events could not be loaded.'
         setEvents([])

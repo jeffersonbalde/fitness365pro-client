@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { apiRequest } from '../../utils/api'
+import { getPageSnapshot, setPageSnapshot } from '../../utils/pageSnapshots'
 import { resolveMediaUrl } from '../../utils/mediaUrl'
 import { notifyError } from '../../utils/notifications'
 import AppModalTransition from '../../components/AppModalTransition.jsx'
@@ -30,8 +31,8 @@ const Dashboard = () => {
   const { client } = useAuth()
   const { isDark } = useTheme()
   const navigate = useNavigate()
-  const [feedItems, setFeedItems] = useState([])
-  const [feedLoading, setFeedLoading] = useState(true)
+  const [feedItems, setFeedItems] = useState(() => getPageSnapshot('dashboard-feed') || [])
+  const [feedLoading, setFeedLoading] = useState(() => !getPageSnapshot('dashboard-feed'))
   const [feedError, setFeedError] = useState('')
   const [postLikeBusyByWorkout, setPostLikeBusyByWorkout] = useState({})
   const [activeCommentsWorkoutId, setActiveCommentsWorkoutId] = useState(null)
@@ -118,6 +119,7 @@ const Dashboard = () => {
 
         const mergedItems = [...workoutItems, ...cmsItems].sort((a, b) => feedItemSortTime(b) - feedItemSortTime(a))
         setFeedItems(mergedItems)
+        setPageSnapshot('dashboard-feed', mergedItems)
 
         if (mergedItems.length === 0 && feedErrors.length > 0) {
           setFeedError(feedErrors[0])

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AppModalTransition from '../AppModalTransition.jsx'
-import { apiRequest, ensureAccessToken } from '../../utils/api'
+import { apiRequest } from '../../utils/api'
 import EarnedRewardArtwork from './EarnedRewardArtwork.jsx'
 import './ChallengeProgressHistoryModal.css'
 
@@ -251,7 +251,6 @@ export default function ChallengeProgressHistoryModal({
       setLightbox(null)
       setLightboxLeaving(false)
       try {
-        await ensureAccessToken()
         const res = await apiRequest(historyPath, {
           method: 'GET',
           timeoutMs: 45000,
