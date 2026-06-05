@@ -1,0 +1,83 @@
+.workout-metrics-block {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: 12px;
+}
+
+.workout-metrics-distance {
+  width: 100%;
+}
+
+.workout-metrics-duration__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+  margin-bottom: 10px;
+}
+
+.workout-metrics-duration__heading .workout-label {
+  margin-bottom: 0;
+}
+
+.workout-metrics-duration__hint {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.workout-duration-hms {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
+.workout-duration-hms__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.workout-duration-hms__label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.workout-duration-hms__input {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.workout-duration-hms__unit {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.2;
+}
+
+[data-theme='dark'] .workout-metrics-duration__hint,
+[data-theme='dark'] .workout-duration-hms__label,
+[data-theme='dark'] .workout-duration-hms__unit {
+  color: #aebcd0;
+}
+
+@media (max-width: 640px) {
+  .workout-metrics-duration__heading {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .workout-duration-hms {
+    gap: 8px;
+  }
+}

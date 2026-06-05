@@ -32,6 +32,12 @@ import {
   formatHeightFtIn,
   validateHeightFeetInches,
 } from '../../utils/height'
+import WorkoutMetricsFields from '../../components/workout/WorkoutMetricsFields'
+import {
+  totalSecondsToDurationMinutes,
+  totalSecondsToHms,
+  validateWorkoutHms,
+} from '../../utils/workoutDuration'
 
 const formatLongDate = (value) => {
   if (!value) return 'Not set'
@@ -175,7 +181,9 @@ const Profile = () => {
   const [editForm, setEditForm] = useState({
     workout_type: '',
     workout_date: '',
+    duration_hours: '',
     duration_minutes: '',
+    duration_seconds: '',
     distance_km: '',
     notes: '',
   })
@@ -1238,10 +1246,18 @@ const Profile = () => {
     setTimelineMenuOpenId(null)
     setEditingWorkout(entry)
     setLinkedWorkoutChallengeId(entry.linked_challenge?.id ? String(entry.linked_challenge.id) : '')
+    const storedSeconds = Number(entry.duration_seconds)
+    const fallbackSeconds = Number(entry.duration_minutes) * 60
+    const totalSeconds = Number.isFinite(storedSeconds) && storedSeconds > 0
+      ? storedSeconds
+      : (Number.isFinite(fallbackSeconds) && fallbackSeconds > 0 ? fallbackSeconds : 0)
+    const hms = totalSecondsToHms(totalSeconds)
     setEditForm({
       workout_type: entry.workout_type || '',
       workout_date: entry.workout_date ? String(entry.workout_date).slice(0, 10) : '',
-      duration_minutes: entry.duration_minutes ?? '',
+      duration_hours: hms.hours,
+      duration_minutes: hms.minutes,
+      duration_seconds: hms.seconds,
       distance_km: entry.distance_km ?? '',
       notes: entry.notes || '',
     })
@@ -1259,6 +1275,10 @@ const Profile = () => {
 
   const handleEditFormChange = (e) => {
     const { name, value } = e.target
+    setEditForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleEditDurationPartChange = (name, value) => {
     setEditForm((prev) => ({ ...prev, [name]: value }))
   }
 
@@ -1285,8 +1305,13 @@ const Profile = () => {
       notifyError('Workout date cannot be in the future.')
       return
     }
-    if (!editForm.duration_minutes || Number(editForm.duration_minutes) < 1) {
-      notifyError('Duration must be at least 1 minute.')
+    const durationCheck = validateWorkoutHms(
+      editForm.duration_hours,
+      editForm.duration_minutes,
+      editForm.duration_seconds,
+    )
+    if (!durationCheck.valid) {
+      notifyError(durationCheck.message)
       return
     }
     if (!editForm.distance_km || Number(editForm.distance_km) <= 0) {
@@ -1300,7 +1325,8 @@ const Profile = () => {
       payload.append('_method', 'PUT')
       payload.append('workout_type', editForm.workout_type.trim())
       payload.append('workout_date', normalizedWorkoutDate)
-      payload.append('duration_minutes', String(parseInt(editForm.duration_minutes, 10)))
+      payload.append('duration_minutes', String(totalSecondsToDurationMinutes(durationCheck.totalSeconds)))
+      payload.append('duration_seconds', String(durationCheck.totalSeconds))
       payload.append('distance_km', String(parseFloat(editForm.distance_km)))
       if (editForm.notes?.trim()) {
         payload.append('notes', editForm.notes.trim())
@@ -2889,29 +2915,17 @@ const Profile = () => {
                     required
                   />
                 </div>
-                <div>
-                  <label className="form-label">Duration (min)</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    name="duration_minutes"
-                    value={editForm.duration_minutes}
-                    min="1"
-                    onChange={handleEditFormChange}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="form-label">Distance (km)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="form-control"
-                    name="distance_km"
-                    value={editForm.distance_km}
-                    min="0.01"
-                    onChange={handleEditFormChange}
-                    required
+                <div className="profile-workout-edit-metrics">
+                  <WorkoutMetricsFields
+                    distanceKm={editForm.distance_km}
+                    durationHours={editForm.duration_hours}
+                    durationMinutes={editForm.duration_minutes}
+                    durationSeconds={editForm.duration_seconds}
+                    onDistanceChange={handleEditFormChange}
+                    onDurationPartChange={handleEditDurationPartChange}
+                    inputClassName="form-control"
+                    labelClassName="form-label"
+                    sectionClassName=""
                   />
                 </div>
                 {(editingWorkout.entry_type || 'workout') === 'workout'

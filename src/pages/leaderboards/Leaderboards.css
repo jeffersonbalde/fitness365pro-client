@@ -266,6 +266,11 @@
   margin-bottom: 12px;
 }
 
+.leaderboard-viewer-card--pending {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
 .leaderboard-viewer-card-top {
   display: flex;
   align-items: center;
@@ -613,6 +618,11 @@
 [data-theme='dark'] .leaderboard-podium-card {
   border-color: var(--app-border);
   background: var(--app-surface);
+}
+
+[data-theme='dark'] .leaderboard-viewer-card--pending {
+  background: rgba(30, 41, 59, 0.55);
+  border-color: rgba(148, 163, 184, 0.24);
 }
 
 [data-theme='dark'] .leaderboard-podium-meta {

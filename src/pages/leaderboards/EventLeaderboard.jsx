@@ -59,6 +59,7 @@ const EventLeaderboard = () => {
   const [rows, setRows] = useState([])
   const [totalResults, setTotalResults] = useState(0)
   const [viewerRank, setViewerRank] = useState(null)
+  const [viewerState, setViewerState] = useState(null)
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [shareOpen, setShareOpen] = useState(false)
 
@@ -90,6 +91,7 @@ const EventLeaderboard = () => {
           setRows([])
           setTotalResults(0)
           setViewerRank(null)
+          setViewerState(null)
           setLoadError(response.data?.message || 'Leaderboard could not be loaded.')
         }
         return
@@ -101,6 +103,7 @@ const EventLeaderboard = () => {
       setRows(payload.leaderboard || [])
       setTotalResults(Number(payload.total || 0))
       setViewerRank(null)
+      setViewerState(payload.viewer_state || null)
       setLoadError(null)
 
       const viewerParams = new URLSearchParams(params)
@@ -112,6 +115,9 @@ const EventLeaderboard = () => {
         .then((viewerResponse) => {
           if (requestId !== requestIdRef.current) return
           const viewerPayload = viewerResponse.data?.data || {}
+          if (viewerPayload.viewer_state) {
+            setViewerState(viewerPayload.viewer_state)
+          }
           if (viewerPayload.viewer_rank) {
             setViewerRank(viewerPayload.viewer_rank)
           }
@@ -132,6 +138,7 @@ const EventLeaderboard = () => {
         setRows([])
         setTotalResults(0)
         setViewerRank(null)
+        setViewerState(null)
         setLoadError(error?.response?.data?.message || 'Unable to reach the server right now.')
       }
     } finally {
@@ -191,8 +198,8 @@ const EventLeaderboard = () => {
               <h1 className="leaderboard-title">{eventMeta?.title || 'Event Leaderboard'}</h1>
               <p className="leaderboard-subtitle">
                 {eventMeta
-                  ? `${eventMeta.participants_count ?? 0} participants ranked by finish order, then progress`
-                  : 'Rankings update when admin approves progress. Finishers rank by who completed the goal first.'}
+                  ? `${eventMeta.ranked_participants_count ?? eventMeta.participants_count ?? 0} athletes ranked by finish order, then progress`
+                  : 'Only athletes who log workouts appear here. Finishers rank by who completed the goal first.'}
               </p>
             </div>
             {viewerRank && (
@@ -247,11 +254,20 @@ const EventLeaderboard = () => {
           ) : rows.length === 0 ? (
             <div className="leaderboard-empty">
               {showCategoryFilter && categoryFilter !== 'all'
-                ? 'No participants found for this category yet.'
-                : 'No confirmed participants yet. Rankings will appear once athletes join and log progress.'}
+                ? 'No athletes with logged workouts in this category yet.'
+                : 'No rankings yet. Registered athletes appear here after they log a workout for this event.'}
             </div>
           ) : (
             <>
+                  {viewerState?.registered && !viewerState?.visible_on_leaderboard && (
+                    <div className="leaderboard-viewer-card leaderboard-viewer-card--pending">
+                      <div className="leaderboard-viewer-rank">You are registered for this event</div>
+                      <div className="leaderboard-viewer-meta">
+                        Log a workout with attachments for this challenge to appear on the public leaderboard.
+                      </div>
+                    </div>
+                  )}
+
                   {totalResults > 0 && showCategoryFilter && categoryFilter !== 'all' && (
                     <div className="leaderboard-results-summary">
                       {totalResults} athlete{totalResults === 1 ? '' : 's'} in{' '}

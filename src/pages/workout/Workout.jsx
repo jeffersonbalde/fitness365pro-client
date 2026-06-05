@@ -8,6 +8,12 @@ import {
   WORKOUT_IMAGE_ACCEPT,
 } from '../../utils/workoutImages'
 import { isJoinedChallengeGoalCompleted } from '../challenges/eventCatalog'
+import WorkoutMetricsFields from '../../components/workout/WorkoutMetricsFields'
+import {
+  totalSecondsToDurationMinutes,
+  totalSecondsToHms,
+  validateWorkoutHms,
+} from '../../utils/workoutDuration'
 import './Workout.css'
 
 const QUICK_WORKOUT_TYPES = [
@@ -28,7 +34,8 @@ const Workout = () => {
     entry_type: location.state?.entryType === 'post' ? 'post' : 'workout',
     workout_type: '',
     workout_date: new Date().toISOString().split('T')[0],
-    duration_minutes: location.state?.duration || '',
+    duration_hours: '',
+    duration_minutes: '',
     distance_km: '',
     duration_seconds: '',
     caption: '',
@@ -134,6 +141,17 @@ const Workout = () => {
     return null
   }, [activeJoinedChallenges, linkedEventId, prefilledEvent])
 
+  const clearDurationErrors = () => {
+    setErrors((prev) => {
+      const next = { ...prev }
+      delete next.duration
+      delete next.duration_hours
+      delete next.duration_minutes
+      delete next.duration_seconds
+      return next
+    })
+  }
+
   const handleChange = (e) => {
     const { name, value } = e.target
     setWorkoutData(prev => ({
@@ -148,6 +166,25 @@ const Workout = () => {
       })
     }
   }
+
+  const handleDurationPartChange = (name, value) => {
+    setWorkoutData((prev) => ({ ...prev, [name]: value }))
+    clearDurationErrors()
+  }
+
+  useEffect(() => {
+    const prefilledMinutes = location.state?.duration
+    if (prefilledMinutes == null || prefilledMinutes === '') return
+    const totalSeconds = Number(prefilledMinutes) * 60
+    if (!Number.isFinite(totalSeconds) || totalSeconds < 1) return
+    const hms = totalSecondsToHms(totalSeconds)
+    setWorkoutData((prev) => ({
+      ...prev,
+      duration_hours: hms.hours,
+      duration_minutes: hms.minutes,
+      duration_seconds: hms.seconds,
+    }))
+  }, [location.state?.duration])
 
   const handleImageSelect = (e) => {
     const files = Array.from(e.target.files || [])
@@ -223,20 +260,26 @@ const Workout = () => {
       nextErrors.workout_date = 'Workout date cannot be in the future.'
     }
 
-    const minutesValue = workoutData.duration_minutes ? parseInt(workoutData.duration_minutes, 10) : null
     const distanceValue = workoutData.distance_km ? parseFloat(workoutData.distance_km) : null
-    const secondsValue = workoutData.duration_seconds ? parseInt(workoutData.duration_seconds, 10) : null
+    let totalDurationSeconds = null
+    let durationMinutesValue = null
 
-    if (!isPostEntry && (minutesValue === null || Number.isNaN(minutesValue) || minutesValue < 1)) {
-      nextErrors.duration_minutes = 'Duration is required and must be at least 1 minute.'
+    if (!isPostEntry) {
+      const durationCheck = validateWorkoutHms(
+        workoutData.duration_hours,
+        workoutData.duration_minutes,
+        workoutData.duration_seconds,
+      )
+      if (!durationCheck.valid) {
+        nextErrors[durationCheck.field] = durationCheck.message
+      } else {
+        totalDurationSeconds = durationCheck.totalSeconds
+        durationMinutesValue = totalSecondsToDurationMinutes(totalDurationSeconds)
+      }
     }
 
     if (!isPostEntry && (distanceValue === null || Number.isNaN(distanceValue) || distanceValue <= 0)) {
       nextErrors.distance_km = 'Distance is required and must be greater than 0.'
-    }
-
-    if (!isPostEntry && (secondsValue === null || Number.isNaN(secondsValue) || secondsValue < 1)) {
-      nextErrors.duration_seconds = 'Time in seconds is required and must be at least 1.'
     }
 
     const captionValue = workoutData.caption.trim()
@@ -276,14 +319,14 @@ const Workout = () => {
       if (captionValue) formPayload.append('caption', captionValue)
 
       if (!isPostEntry) formPayload.append('workout_type', workoutType)
-      if (!isPostEntry && minutesValue !== null && !Number.isNaN(minutesValue)) {
-        formPayload.append('duration_minutes', String(minutesValue))
+      if (!isPostEntry && durationMinutesValue !== null) {
+        formPayload.append('duration_minutes', String(durationMinutesValue))
       }
       if (!isPostEntry && distanceValue !== null && !Number.isNaN(distanceValue)) {
         formPayload.append('distance_km', String(distanceValue))
       }
-      if (!isPostEntry && secondsValue !== null && !Number.isNaN(secondsValue)) {
-        formPayload.append('duration_seconds', String(secondsValue))
+      if (!isPostEntry && totalDurationSeconds !== null) {
+        formPayload.append('duration_seconds', String(totalDurationSeconds))
       }
       formPayload.append('notes', notesValue)
       if (!isPostEntry && planDay) formPayload.append('plan_day', String(planDay))
@@ -457,67 +500,15 @@ const Workout = () => {
                         )}
                     </div>
 
-                    <div className="row workout-section">
-                      <div className="col-md-6 mb-3">
-                          <label htmlFor="duration_minutes" className="form-label workout-label">
-                            Duration (minutes) *
-                          </label>
-                          <input
-                            type="number"
-                            className="form-control workout-input"
-                            id="duration_minutes"
-                            name="duration_minutes"
-                            value={workoutData.duration_minutes}
-                            onChange={handleChange}
-                            min="1"
-                            required
-                            placeholder="Minutes"
-                          />
-                          {errors.duration_minutes && (
-                            <small className="text-danger d-block mt-1">{errors.duration_minutes}</small>
-                          )}
-                      </div>
-                      <div className="col-md-6 mb-3">
-                          <label htmlFor="distance_km" className="form-label workout-label">
-                            Distance (km) *
-                          </label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            className="form-control workout-input"
-                            id="distance_km"
-                            name="distance_km"
-                            value={workoutData.distance_km}
-                            onChange={handleChange}
-                            min="0.01"
-                            required
-                            placeholder="Distance in km"
-                          />
-                          {errors.distance_km && (
-                            <small className="text-danger d-block mt-1">{errors.distance_km}</small>
-                          )}
-                      </div>
-                    </div>
-
-                    <div className="mb-3 workout-section">
-                        <label htmlFor="duration_seconds" className="form-label workout-label">
-                          Time (seconds) *
-                        </label>
-                        <input
-                          type="number"
-                          className="form-control workout-input"
-                          id="duration_seconds"
-                          name="duration_seconds"
-                          value={workoutData.duration_seconds}
-                          onChange={handleChange}
-                          min="1"
-                          required
-                          placeholder="Time in seconds"
-                        />
-                        {errors.duration_seconds && (
-                          <small className="text-danger d-block mt-1">{errors.duration_seconds}</small>
-                        )}
-                    </div>
+                    <WorkoutMetricsFields
+                      distanceKm={workoutData.distance_km}
+                      durationHours={workoutData.duration_hours}
+                      durationMinutes={workoutData.duration_minutes}
+                      durationSeconds={workoutData.duration_seconds}
+                      onDistanceChange={handleChange}
+                      onDurationPartChange={handleDurationPartChange}
+                      errors={errors}
+                    />
                   </section>
                 ) : (
                   <section className="workout-block">
