@@ -17,6 +17,9 @@ export const resolveDefaultCacheTtl = (endpoint) => {
   if (DEFAULT_GET_CACHE_TTL_MS[path] != null) {
     return DEFAULT_GET_CACHE_TTL_MS[path]
   }
+  if (path.startsWith('/v1/social/profile/')) {
+    return 30_000
+  }
   if (path.startsWith('/v1/cms/events/') && path.endsWith('/leaderboard')) {
     return 15_000
   }
