@@ -54,6 +54,9 @@ const UserProfile = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [profileData, setProfileData] = useState(null)
+  const [workoutStats, setWorkoutStats] = useState(null)
+  const [statsLoading, setStatsLoading] = useState(false)
+  const [loadError, setLoadError] = useState(null)
   const [socialModalType, setSocialModalType] = useState(null)
   const [socialModalLoading, setSocialModalLoading] = useState(false)
   const [socialUsers, setSocialUsers] = useState([])
@@ -85,8 +88,14 @@ const UserProfile = () => {
 
   const loadProfile = async () => {
     setLoading(true)
+    setLoadError(null)
+    setWorkoutStats(null)
+    setStatsLoading(false)
     try {
-      const response = await apiRequest(`/v1/social/profile/${clientId}`, { method: 'GET' })
+      const response = await apiRequest(`/v1/social/profile/${clientId}`, {
+        method: 'GET',
+        timeoutMs: 45000,
+      })
       if (response.data.success) {
         const payload = response.data.data
         if (payload?.social?.is_self) {
@@ -94,9 +103,31 @@ const UserProfile = () => {
           return
         }
         setProfileData(payload)
+        setLoading(false)
+
+        setStatsLoading(true)
+        void apiRequest(`/v1/social/profile/${clientId}/workout-stats`, {
+          method: 'GET',
+          timeoutMs: 90000,
+        })
+          .then((statsResponse) => {
+            if (statsResponse.data?.success) {
+              setWorkoutStats(statsResponse.data.data || null)
+            }
+          })
+          .catch(() => {
+            // Progress sidebar is optional; core profile already visible.
+          })
+          .finally(() => {
+            setStatsLoading(false)
+          })
+        return
       }
     } catch (error) {
-      notifyError(error?.response?.data?.message || 'Failed to load profile.')
+      setProfileData(null)
+      const message = error?.response?.data?.message || 'Failed to load profile.'
+      setLoadError(message)
+      notifyError(message)
     } finally {
       setLoading(false)
     }
@@ -415,6 +446,22 @@ const UserProfile = () => {
     )
   }
 
+  if (!profileData) {
+    return (
+      <div
+        className="d-flex flex-column align-items-center justify-content-center profile-page px-3"
+        style={{ minHeight: '100vh' }}
+      >
+        <div className="text-center" style={{ maxWidth: 420 }}>
+          <p className="mb-3">{loadError || 'This profile could not be loaded right now.'}</p>
+          <button type="button" className="btn btn-outline-primary btn-sm" onClick={loadProfile}>
+            Try again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const profile = profileData?.profile || {}
   const user = profileData?.user || {}
   const social = profileData?.social || {}
@@ -432,8 +479,6 @@ const UserProfile = () => {
         .map((goal) => PRIMARY_GOAL_GROUPS.find((item) => item.slug === goal.slug)?.label || goal.name)
         .join(', ')
     : 'Not set'
-  const workoutStats = profileData?.workout_stats
-
   return (
     <>
       <div className="d-flex flex-column profile-page" style={{ minHeight: '100vh' }}>
@@ -554,6 +599,9 @@ const UserProfile = () => {
                     </div>
                   </div>
                   <div className="profile-side-divider" />
+                  {statsLoading && (
+                    <AppLoadingState compact hint="Loading progress…" className="profile-stats-loading" />
+                  )}
                   {workoutStats && (
                     <>
                       <div className="profile-side-head">
