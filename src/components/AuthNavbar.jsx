@@ -527,7 +527,7 @@ const AuthNavbar = () => {
                       <path d="M4 20h16" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" />
                     </svg>
                   </span>
-                  <span className="auth-navbar-mobile-link__label flex-grow-1">Training</span>
+                  <span className="auth-navbar-mobile-link__label flex-grow-1">Log</span>
                   <span className={`auth-navbar-mobile-link__chev${showWorkoutMenu ? ' is-open' : ''}`} aria-hidden>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                       <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -588,7 +588,7 @@ const AuthNavbar = () => {
                     />
                   </svg>
                 </span>
-                <span className="auth-navbar-mobile-link__label">Leaderboards</span>
+                <span className="auth-navbar-mobile-link__label">Ranks</span>
               </Link>
             </li>
             <li className="nav-item d-none d-lg-block">
