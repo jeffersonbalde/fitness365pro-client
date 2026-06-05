@@ -71,13 +71,14 @@ const EventLeaderboard = () => {
     }
 
     try {
-      const params = new URLSearchParams({ limit: '50' })
+      const params = new URLSearchParams({ limit: '50', include_viewer_rank: '0' })
       if (category && category !== 'all') {
         params.set('category', category)
       }
 
       const response = await apiRequest(`/v1/cms/events/${eventId}/leaderboard?${params.toString()}`, {
         method: 'GET',
+        timeoutMs: 45000,
       })
 
       if (requestId !== requestIdRef.current) return
@@ -99,8 +100,25 @@ const EventLeaderboard = () => {
       setCategories(payload.categories || [])
       setRows(payload.leaderboard || [])
       setTotalResults(Number(payload.total || 0))
-      setViewerRank(payload.viewer_rank || null)
+      setViewerRank(null)
       setLoadError(null)
+
+      const viewerParams = new URLSearchParams(params)
+      viewerParams.set('include_viewer_rank', '1')
+      void apiRequest(`/v1/cms/events/${eventId}/leaderboard?${viewerParams.toString()}`, {
+        method: 'GET',
+        timeoutMs: 45000,
+      })
+        .then((viewerResponse) => {
+          if (requestId !== requestIdRef.current) return
+          const viewerPayload = viewerResponse.data?.data || {}
+          if (viewerPayload.viewer_rank) {
+            setViewerRank(viewerPayload.viewer_rank)
+          }
+        })
+        .catch(() => {
+          // Rankings already visible; viewer card is optional.
+        })
     } catch (error) {
       if (requestId !== requestIdRef.current) return
       if (error?.response?.data?.event_status === 'completed') {
